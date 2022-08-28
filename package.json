@@ -1,0 +1,17 @@
+{
+    "name": "tradingview-bot",
+    "version": "1.0.0",
+    "description": "",
+    "main": "./dist/index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "YousefHatem",
+    "license": "ISC",
+    "dependencies": {
+        "@types/node": "^18.7.13",
+        "dotenv": "^16.0.1",
+        "node-fetch": "^2.6.7",
+        "validation-all": "^2.5.1"
+    }
+}
