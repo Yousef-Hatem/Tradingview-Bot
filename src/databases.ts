@@ -1,9 +1,10 @@
 import TradingviewAPI from "./tradingview";
 import fs from 'fs';
+import { Idea } from "./interfaces/Ideas";
 
 export default class Databases {
 
-    getIdeas(verification: boolean = false): Promise<{time: number, ideas: any[]}> {
+    getIdeas(verification: boolean = false): Promise<{time: number, ideas: Idea[]}> {
         return new Promise((resolve, reject) => {
             fs.readFile('data/ideas.txt', 'utf8', (err, data) => {
                 if (err) {                
@@ -34,8 +35,8 @@ export default class Databases {
 
         let time: number = new Date().getTime();
         tradingview.getIdeas('ethusd').then(ideas => {
-            ideas = {time: new Date().getTime(), ideas};
-            fs.writeFile('data/ideas.txt', JSON.stringify(ideas), (err) => {
+            let data = {time: new Date().getTime(), ideas};
+            fs.writeFile('data/ideas.txt', JSON.stringify(data), (err) => {
                 time = (new Date().getTime() - time)/1000;
                 if (err) {
                     console.log("ERR:2000 - " + err);
@@ -52,14 +53,13 @@ export default class Databases {
 
     updatingData() {
         this.getIdeas(true).then(data => {
-            const time: number = data.time;
-            if (new Date().getTime() - time > 60000 && time !== 0) {
+            if (new Date().getTime() - data.time > 60000 && data.time > 0) {
                 data.time = 0;
                 fs.writeFile('data/ideas.txt', JSON.stringify(data), () => {
                     this.dataRecording();
                 });
-            } else if (!data.ideas.length) {
-                data.ideas = [0];
+            } else if (!data.ideas.length && data.time === 0) {
+                data.time = -1;
                 fs.writeFile('data/ideas.txt', JSON.stringify(data), () => {
                     this.dataRecording();
                 });

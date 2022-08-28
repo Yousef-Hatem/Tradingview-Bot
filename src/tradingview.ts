@@ -1,8 +1,9 @@
 import fetch from 'node-fetch';
+import { Idea } from './interfaces/Ideas';
 
 export default class Tradingview {
 
-    async dataHandler(data: Promise<string>): Promise<any> {
+    async dataHandler(data: Promise<string>): Promise<Idea[]> {
         let ideas: any[] = [];
         await data.then(async HTML => {
             let items: string[] = HTML.split('tv-feed__item tv-feed-layout__card-item');
@@ -45,18 +46,18 @@ export default class Tradingview {
         });
     }
 
-    async getIdeas(symbol: string): Promise<any> {
+    async getIdeas(symbol: string): Promise<Idea[]> {
         let url = 'https://www.tradingview.com/ideas/' + symbol;
 
         const response: fetch = await fetch(url);
-        let ideas = [];
+        let ideas: Idea[] = [];
         await this.dataHandler(response.text()).then(data => {
             ideas = data;
         });
         
         
         const responseRecent: fetch = await fetch(url + "?sort=recent");        
-        let ideasRecent = [];
+        let ideasRecent: Idea[] = [];
         await this.dataHandler(responseRecent.text()).then(data => {            
             ideasRecent = data;
         });
