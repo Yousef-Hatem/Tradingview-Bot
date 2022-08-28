@@ -22,10 +22,10 @@ export default class Databases {
 
     dataRecording() {
         const tradingview = new TradingviewAPI();
-        let fileStatus: any;
-        this.getIdeas(true).then(state => {
-            fileStatus = state;
-            if (state) {
+        let fileData: any;
+        this.getIdeas(true).then(data => {
+            fileData = data;
+            if (data.ideas[0]) {
                 console.log("Idea data is updated...");
             } else {
                 console.log("The ideas are stored...");
@@ -40,7 +40,7 @@ export default class Databases {
                 if (err) {
                     console.log("ERR:2000 - " + err);
                 } else {
-                    if (fileStatus) {
+                    if (fileData.ideas[0]) {
                         console.log(`Ideas data updated - time ${time}s`);
                     } else {
                         console.log(`Thoughts data is stored - time ${time}s`);
@@ -51,10 +51,15 @@ export default class Databases {
     }
 
     updatingData() {
-        this.getIdeas().then(data => {
+        this.getIdeas(true).then(data => {
             const time: number = data.time;
             if (new Date().getTime() - time > 60000 && time !== 0) {
                 data.time = 0;
+                fs.writeFile('data/ideas.txt', JSON.stringify(data), () => {
+                    this.dataRecording();
+                });
+            } else if (!data.ideas.length) {
+                data.ideas = [0];
                 fs.writeFile('data/ideas.txt', JSON.stringify(data), () => {
                     this.dataRecording();
                 });
