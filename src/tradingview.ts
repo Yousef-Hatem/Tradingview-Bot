@@ -46,7 +46,7 @@ export default class Tradingview {
         });
     }
 
-    async getIdeas(symbol: string): Promise<Idea[]> {
+    async getIdeas(symbol: string): Promise<Idea[] | null> {
         let url = 'https://www.tradingview.com/ideas/' + symbol;
 
         const response: fetch = await fetch(url);
@@ -54,7 +54,10 @@ export default class Tradingview {
         await this.dataHandler(response.text()).then(data => {
             ideas = data;
         });
-        
+
+        if (!ideas.length) {
+            return null;
+        }
         
         const responseRecent: fetch = await fetch(url + "?sort=recent");        
         let ideasRecent: Idea[] = [];
@@ -64,5 +67,4 @@ export default class Tradingview {
         
         return [...ideas, ...ideasRecent];
     }
-
 }

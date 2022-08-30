@@ -4,66 +4,140 @@ import { Idea } from "./interfaces/Ideas";
 
 export default class Databases {
 
-    getIdeas(verification: boolean = false): Promise<{time: number, ideas: Idea[]}> {
-        return new Promise((resolve, reject) => {
-            fs.readFile('data/ideas.txt', 'utf8', (err, data) => {
-                if (err) {                
-                    if (verification) {
-                        resolve({time: 0, ideas: []});
-                    } else {
-                        reject(err)
-                        console.log("ERR:2100 - " + err);
-                    }
-                } else {
-                    resolve(JSON.parse(data));
-                }
-            });
-        })
-    }
-
-    dataRecording() {
-        const tradingview = new TradingviewAPI();
-        let fileData: any;
-        this.getIdeas(true).then(data => {
-            fileData = data;
-            if (data.ideas[0]) {
-                console.log("Idea data is updated...");
-            } else {
-                console.log("The ideas are stored...");
-            }
-        })
-
-        let time: number = new Date().getTime();
-        tradingview.getIdeas('ethusd').then(ideas => {
-            let data = {time: new Date().getTime(), ideas};
-            fs.writeFile('data/ideas.txt', JSON.stringify(data), (err) => {
-                time = (new Date().getTime() - time)/1000;
+    getIdeas(symbol: string): Promise<{time: number, ideas: Idea[]} | null> {
+        return new Promise((resolve) => {
+            fs.readFile('data/ideas.json', 'utf8', async (err, symbols) => {
+                let data: {time: number, ideas: Idea[]} | null = null;
+                
                 if (err) {
-                    console.log("ERR:2000 - " + err);
+                    await this.addSymbol(symbol).then(response => {
+                        data = response
+                    });
                 } else {
-                    if (fileData.ideas[0]) {
-                        console.log(`Ideas data updated - time ${time}s`);
+                    symbols = JSON.parse(symbols);
+                    if (symbols[symbol]) {
+                        data = symbols[symbol];
                     } else {
-                        console.log(`Thoughts data is stored - time ${time}s`);
+                        await this.addSymbol(symbol).then(response => {
+                            data = response
+                        });
                     }
                 }
-            });
+
+                resolve(data);
+            })
         })
     }
 
     updatingData() {
-        this.getIdeas(true).then(data => {
-            if (new Date().getTime() - data.time > 60000 && data.time > 0) {
-                data.time = 0;
-                fs.writeFile('data/ideas.txt', JSON.stringify(data), () => {
-                    this.dataRecording();
-                });
-            } else if (!data.ideas.length && data.time === 0) {
-                data.time = -1;
-                fs.writeFile('data/ideas.txt', JSON.stringify(data), () => {
-                    this.dataRecording();
-                });
+        fs.readFile('data/symbols.json', 'utf8', async (err, symbols: any) => {
+            if (!err) {    
+                symbols = JSON.parse(symbols);
+                
+                function forLube(num = 0) {
+                    const symbol = symbols[num];
+
+                    if (symbol) {
+                        let t: number = new Date().getTime();
+
+                        fs.readFile('data/ideas.json', 'utf8', (err, symbols: any) => {
+                            if (err) {
+                                symbols = {};
+                            } else {
+                                symbols = JSON.parse(symbols);
+                            }
+
+                            if (!symbols[symbol]) {
+                                symbols[symbol] = {time: 0};
+                            }
+                                
+                            if (new Date().getTime() - symbols[symbol].time > 60000) {
+                                symbols[symbol].time = new Date().getTime() + 120000;
+
+                                fs.writeFile('data/ideas.json', JSON.stringify(symbols), () => {
+                                    console.log(`${symbol} is updated`);
+
+                                    forLube(++num);
+
+                                    const tradingview = new TradingviewAPI();
+
+                                    tradingview.getIdeas(symbol).then(ideas => {
+                                        let time = new Date().getTime();
+    
+                                        fs.readFile('data/ideas.json', 'utf8', (err, symbols: any) => {
+                                            if (err) {
+                                                console.log(err);
+                                            }
+    
+                                            symbols = JSON.parse(symbols);
+    
+                                            symbols[symbol] = { time, ideas };
+    
+                                            fs.writeFile('data/ideas.json', JSON.stringify(symbols), () => {
+                                                t = (new Date().getTime() - t) / 1000;
+                                                console.log(`${symbol} ideas data has been updated (${t}s)`);
+                                            })
+                                        })
+                                    })
+                                })
+                            } else {
+                                forLube(++num);
+                            }
+                        })
+                    }
+                }
+                forLube();
             }
+        })
+    }
+
+    async addSymbol(symbol: string): Promise<{time: number, ideas: Idea[]} | null> {
+        const tradingview = new TradingviewAPI();
+        let ideas: Idea[] | null = null;
+        let time: number = 0;
+        let t: number = new Date().getTime();
+
+        console.log(`${symbol} ideas data is stored`);
+
+        await tradingview.getIdeas(symbol).then(data => {
+            ideas = data;
+            time = new Date().getTime();
         });
+
+        if (ideas) {
+            fs.readFile('data/symbols.json', 'utf8', (err, data) => {
+                let symbols: string[] = [symbol];
+    
+                if (!err) {
+                    if (JSON.parse(data).indexOf(symbol) === -1) {
+                        symbols.push(...JSON.parse(data));
+                    } else {
+                        symbols = JSON.parse(data);
+                    }
+                }
+    
+                fs.writeFile('data/symbols.json', JSON.stringify(symbols), () => {
+                    fs.readFile('data/ideas.json', 'utf8', (err, symbols: any) => {
+                        err? symbols = {} : symbols = JSON.parse(symbols);
+
+                        symbols[symbol] = {time, ideas};
+
+                        fs.writeFile('data/ideas.json', JSON.stringify(symbols), () => {
+                            t = (new Date().getTime() - t)/1000;
+
+                            console.log(`${symbol} Ideas Data Stored (${t}s)`);
+                        })                        
+                    })
+                })
+            })
+
+            return {time, ideas};
+        } else {
+            t = (new Date().getTime() - t)/1000;
+
+            console.log(`No data was found for ideas for ${symbol} (${t}s)`);
+            
+            return null;
+        }
     }
 }

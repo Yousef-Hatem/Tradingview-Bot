@@ -1,10 +1,15 @@
 import { config } from "dotenv";
 config();
+// import Databases from "./databases";
 // import express from "express";
 // import bodyParser from "body-parser";
 // import axios from "axios";
-import TelegramAPI from "./telegram";
-const telegram = new TelegramAPI(<string> process.env.BOTKEY);
+// import TelegramAPI from "./telegram";
+
+// const db = new Databases();
+
+// db.addSymbol("BTCUSDT");
+// setInterval(db.updatingData, 1000);
 
 // telegram.request('sendMessage', body);
 
