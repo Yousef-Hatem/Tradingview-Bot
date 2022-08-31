@@ -41,4 +41,25 @@ export default class Telegram {
 
         return response;
    }
+
+   webhook(url: string) {
+        this.request(`getWebhookInfo`).then(async response => {
+            if (response.data.result.url !== url) {            
+                const res = await this.request(`setWebhook?url=${url}`);
+                console.log(res.data);
+            }
+        }).catch(err => {
+            console.log(err);
+        });
+   }
+
+   async editMessageMedia(chateId: number, messageId: number, media: {}, replyMarkup?: {}) {
+        const body: any = {chat_id: chateId, message_id: messageId, media};
+
+        replyMarkup? body.reply_markup = replyMarkup : null;
+    
+        const response = await this.request("editMessageMedia", body);
+
+        return response;
+   }
 }
