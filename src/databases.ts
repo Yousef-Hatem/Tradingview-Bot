@@ -51,8 +51,8 @@ export default class Databases {
                                 symbols[symbol] = {time: 0};
                             }
                                 
-                            if (new Date().getTime() - symbols[symbol].time > 60000) {
-                                symbols[symbol].time = new Date().getTime() + 120000;
+                            if (new Date().getTime() - symbols[symbol].time > <any> process.env.DATA_UPDATE_DELAY*1000) {
+                                symbols[symbol].time = new Date().getTime() + 180000;
 
                                 fs.writeFile('data/ideas.json', JSON.stringify(symbols), () => {
                                     console.log(`${symbol} is updated`);
@@ -78,6 +78,8 @@ export default class Databases {
                                                 console.log(`${symbol} ideas data has been updated (${t}s)`);
                                             })
                                         })
+                                    }).catch(err => {
+                                        console.log(err);
                                     })
                                 })
                             } else {
@@ -102,6 +104,8 @@ export default class Databases {
         await tradingview.getIdeas(symbol).then(data => {
             ideas = data;
             time = new Date().getTime();
+        }).catch(err => {
+            console.log(err);
         });
 
         if (ideas) {

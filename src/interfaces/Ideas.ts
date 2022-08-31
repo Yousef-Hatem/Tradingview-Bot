@@ -4,5 +4,6 @@ export interface Idea {
     username: string;
     badgeWrap: string;
     img: string;
+    url: string;
     time: number;
 }
