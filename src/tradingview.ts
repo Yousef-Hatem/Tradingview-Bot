@@ -13,8 +13,9 @@ export default class Tradingview {
 
         items.forEach(async item => {
             if (ideas.length < 5) {
-                let idea = {
+                let idea: Idea = {
                     title: item.split('tv-widget-idea__title apply-overflow-tooltip js-widget-idea__popup" data-href="')[1].split("</a>")[0].split('">')[1],
+                    description: item.split('tv-widget-idea__description-row tv-widget-idea__description-row--clamped js-widget-idea__popup"')[1].split('/">')[1].split('</p>')[0].replace(/\s+/g, ' ').trim(),
                     symbol: item.split('class="tv-widget-idea__symbol apply-overflow-tooltip">')[1].split('</a></div>')[0],
                     username: item.split('<span class="tv-card-user-info__name">')[1].split('</span>')[0],
                     badgeWrap: (item.split('<span class="content-s1XFg_zx">')[1] || '').split('</span>')[0],
@@ -22,6 +23,12 @@ export default class Tradingview {
                     url: item.split(`publishedUrl&#34;:&#34;/chart/`)[1].split('/&#34;')[0],
                     time: Number(item.split(`" data-timestamp="`)[1].split('.0"')[0]),
                 };
+
+                let lengthDescription = 180;
+
+                if (idea.description.length > lengthDescription) {
+                    idea.description = idea.description.slice(0, lengthDescription - idea.description.length) + '...';
+                }
         
                 ideas.push(idea);
             }

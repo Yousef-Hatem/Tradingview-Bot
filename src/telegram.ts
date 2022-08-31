@@ -7,7 +7,9 @@ export default class Telegram {
     }
     
     async request(route: string, body: {} = {}) {
-        const response = await axios.post(`https://api.telegram.org/bot${this.BotKey}/${route}`, body);
+        const response = await axios.post(`https://api.telegram.org/bot${this.BotKey}/${route}`, body, {
+            headers: {'Content-Type': 'application/json'}
+        });
         
         return response;
     }

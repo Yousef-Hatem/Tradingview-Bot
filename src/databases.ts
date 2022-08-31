@@ -1,12 +1,13 @@
 import TradingviewAPI from "./tradingview";
 import fs from 'fs';
 import { Idea } from "./interfaces/Ideas";
+import Tradingview from "./tradingview";
 
 export default class Databases {
 
     getIdeas(symbol: string): Promise<{time: number, ideas: Idea[]} | null> {
         return new Promise((resolve) => {
-            fs.readFile('data/ideas.json', 'utf8', async (err, symbols) => {
+            fs.readFile(`data/ideas/${symbol}.json`, 'utf8', async (err, res) => {
                 let data: {time: number, ideas: Idea[]} | null = null;
                 
                 if (err) {
@@ -14,14 +15,7 @@ export default class Databases {
                         data = response
                     });
                 } else {
-                    symbols = JSON.parse(symbols);
-                    if (symbols[symbol]) {
-                        data = symbols[symbol];
-                    } else {
-                        await this.addSymbol(symbol).then(response => {
-                            data = response
-                        });
-                    }
+                    data = JSON.parse(res);
                 }
 
                 resolve(data);
@@ -30,67 +24,35 @@ export default class Databases {
     }
 
     updatingData() {
-        fs.readFile('data/symbols.json', 'utf8', async (err, symbols: any) => {
-            if (!err) {    
+        fs.readFile('data/symbols.json', 'utf8', (err, symbols: any) => {
+            if (!err) {
                 symbols = JSON.parse(symbols);
                 
-                function forLube(num = 0) {
-                    const symbol = symbols[num];
+                symbols.forEach((symbol: string) => {
+                    let t: number = new Date().getTime();
+                    fs.readFile(`data/ideas/${symbol}.json`, 'utf8', (err, data: any) => {
+                        if (err) {
+                            data = {time: 0};
+                        } else {
+                            data = JSON.parse(data);
+                        }
 
-                    if (symbol) {
-                        let t: number = new Date().getTime();
-
-                        fs.readFile('data/ideas.json', 'utf8', (err, symbols: any) => {
-                            if (err) {
-                                symbols = {};
-                            } else {
-                                if (symbols) {
-                                    symbols = JSON.parse(symbols);
-                                } else {
-                                    console.log(symbols);
-                                }
-                            }
-
-                            if (!symbols[symbol]) {
-                                symbols[symbol] = {time: 0};
-                            }
+                        const time: number = data.time;                        
+                        if ((new Date().getTime() - time) > Number(process.env.DATA_UPDATE_DELAY)*1000) {
+                            data.time = new Date().getTime() + 120000;
+                            fs.writeFile(`data/ideas/${symbol}.json`, JSON.stringify(data), () => {
+                                console.log(`${symbol} is updated...`);
                                 
-                            if (new Date().getTime() - symbols[symbol].time > <any> process.env.DATA_UPDATE_DELAY*1000) {
-                                symbols[symbol].time = new Date().getTime() + 180000;
-
-                                fs.writeFile('data/ideas.json', JSON.stringify(symbols), () => {
-                                    console.log(`${symbol} is updated...`);
-
-                                    forLube(++num);
-
-                                    const tradingview = new TradingviewAPI();
-
-                                    tradingview.getIdeas(symbol).then(ideas => {
-                                        let time = new Date().getTime();
-    
-                                        fs.readFile('data/ideas.json', 'utf8', (err, symbols: any) => {
-                                            if (err) {
-                                                console.log('Databases Error ====>>', err);
-                                            }
-    
-                                            symbols = JSON.parse(symbols);
-    
-                                            symbols[symbol] = { time, ideas };
-    
-                                            fs.writeFile('data/ideas.json', JSON.stringify(symbols), () => {
-                                                t = (new Date().getTime() - t) / 1000;
-                                                console.log(`${symbol} ideas data has been updated (${t}s)`);
-                                            })
-                                        })
+                                new Tradingview().getIdeas(symbol).then(ideas => {
+                                    fs.writeFile(`data/ideas/${symbol}.json`, JSON.stringify({time: new Date().getTime(), ideas}), () => {
+                                        t = (new Date().getTime() - t)/1000;
+                                        console.log(`${symbol} ideas data has been updated (${t}s)`);
                                     })
                                 })
-                            } else {
-                                forLube(++num);
-                            }
-                        })
-                    }
-                }
-                forLube();
+                            })
+                        }
+                    })
+                })
             }
         })
     }
@@ -121,17 +83,11 @@ export default class Databases {
                 }
     
                 fs.writeFile('data/symbols.json', JSON.stringify(symbols), () => {
-                    fs.readFile('data/ideas.json', 'utf8', (err, symbols: any) => {
-                        err? symbols = {} : symbols = JSON.parse(symbols);
+                    fs.writeFile(`data/ideas/${symbol}.json`, JSON.stringify({time, ideas}), () => {
+                        t = (new Date().getTime() - t)/1000;
 
-                        symbols[symbol] = {time, ideas};
-
-                        fs.writeFile('data/ideas.json', JSON.stringify(symbols), () => {
-                            t = (new Date().getTime() - t)/1000;
-
-                            console.log(`${symbol} Ideas Data Stored (${t}s)`);
-                        })                        
-                    })
+                        console.log(`${symbol} Ideas Data Stored (${t}s)`);
+                    })                        
                 })
             })
 

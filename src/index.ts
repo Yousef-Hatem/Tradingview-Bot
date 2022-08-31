@@ -21,19 +21,39 @@ app.post(webhookRoute, async (req, res) => {
     let messageId: number;
     let from: string;
 
+    if (req.body.chat_join_request) {
+        console.log(`Request to join the ${req.body.chat_join_request.chat.title} group from ${req.body.chat_join_request.from.username}`);
+        return res.send();
+    }
+
     if (req.body.callback_query) {        
         chateId = req.body.callback_query.message.chat.id;
         message = req.body.callback_query.data;
         messageId = req.body.callback_query.message.message_id;
-        from = req.body.callback_query.message.chat.username;
+        from = req.body.callback_query.from.username;
     } else {
-        chateId = req.body.message.chat.id;
+        if (req.body.message) {
+            chateId = req.body.message.chat.id;
+        } else {
+            console.log(req.body);
+            chateId = req.body.my_chat_member.chat.id;
+            return res.send();
+        }
         message = req.body.message.text;
         messageId = req.body.message.message_id;
         from = req.body.message.from.username;
+        if (req.body.message.from.is_bot === true) {
+            return res.send();
+        }
     }
 
     let t = new Date().getTime();
+
+    if (process.env.maintenance === "OK") {
+        telegram.sendMessage(chateId, "I'm under maintenance now, try again later", '', messageId);
+        console.log(`<=${from}=> tried to order during maintenance`);
+        return res.send();
+    }
 
     if (message) {
         message = message.toUpperCase();
@@ -42,19 +62,11 @@ app.post(webhookRoute, async (req, res) => {
         if (message === "/START") {
             const fullName: string = req.body.message.from.first_name + ' ' + req.body.message.from.last_name;
             const msg = `Hi <b>${fullName}</b>, I am a Tradingview Bot. Let's try typing the name of a symbol and see the ideas of this symbol For example try typing /BTCUSDT or /ETHUSDT or any symbol you want to know ideas`;
-            const replyMarkup = {
-                keyboard: [[
-                    {text: "BTCUSDT"},
-                    {text: "ETHUSDT"}
-                ]],
-                resize_keyboard: true,
-                one_time_keyboard: true,
-                input_field_placeholder: 'Type the symbol you want'
-            }
-            telegram.sendMessage(chateId, msg, parseMode, undefined, replyMarkup).then(() => {
+
+            telegram.sendMessage(chateId, msg, parseMode, undefined).then(() => {
                 t = (new Date().getTime() - t)/1000;
 
-                console.log(`${from} has started using the bot (${t}s)`);
+                console.log(`<=${from}=> has started using the bot (${t}s)`);
             }).catch(handlingErrors.axios);
         } else {
             let symbol: string = message;
@@ -74,14 +86,19 @@ app.post(webhookRoute, async (req, res) => {
                     let replyMarkup: {};
                     let idea = data.ideas[index];
 
-                    idea.time = Number(idea.time+'000');
+                    console.log();
+                    
+                    if (`${idea.time}`.length === 10) {
+                        idea.time = Number(idea.time+'000');
+                    }
+
                     let date = new Date(idea.time).toISOString().split('.')[0].split('T');
 
                     if (!idea.badgeWrap) {
                         idea.badgeWrap = "Free";
                     }
 
-                    let caption = `<a href="https://www.tradingview.com/chart/${idea.url}">${idea.title}</a>\n•°• ╰${idea.symbol} \n<b>👤 Analyst: ${idea.username}</b>\n•°• ╰${idea.badgeWrap}\n<i>📅 ${date[0]} ${date[1]}</i>`;
+                    let caption = `<a href='https://www.tradingview.com/chart/${idea.url}'>${idea.title}</a> \n ${idea.description} \n\n📅 ${date[0]} ${date[1]}`;
 
                     if (req.body.callback_query) {
                         let i1 = index - 1;
@@ -108,7 +125,7 @@ app.post(webhookRoute, async (req, res) => {
                         telegram.editMessageMedia(chateId, messageId, media, replyMarkup).then(() => {
                             t = (new Date().getTime() - t)/1000;
 
-                            console.log(`${symbol} idea data updated to ${from} (${t}s)`);
+                            console.log(`${symbol} idea data updated to <=${from}=> (${t}s)`);
                         }).catch(handlingErrors.axios)
                     } else {
                         replyMarkup = {
@@ -118,7 +135,7 @@ app.post(webhookRoute, async (req, res) => {
                         telegram.sendPhoto(chateId, idea.img, caption, parseMode, messageId, replyMarkup).then(() => {
                             t = (new Date().getTime() - t)/1000;
         
-                            console.log(`${symbol} idea data sent to ${from} (${t}s)`);
+                            console.log(`${symbol} idea data sent to <=${from}=> (${t}s)`);
                         }).catch(handlingErrors.axios);
                     }
 
