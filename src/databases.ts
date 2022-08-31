@@ -44,7 +44,11 @@ export default class Databases {
                             if (err) {
                                 symbols = {};
                             } else {
-                                symbols = JSON.parse(symbols);
+                                if (symbols) {
+                                    symbols = JSON.parse(symbols);
+                                } else {
+                                    console.log(symbols);
+                                }
                             }
 
                             if (!symbols[symbol]) {
@@ -55,7 +59,7 @@ export default class Databases {
                                 symbols[symbol].time = new Date().getTime() + 180000;
 
                                 fs.writeFile('data/ideas.json', JSON.stringify(symbols), () => {
-                                    console.log(`${symbol} is updated`);
+                                    console.log(`${symbol} is updated...`);
 
                                     forLube(++num);
 
@@ -66,7 +70,7 @@ export default class Databases {
     
                                         fs.readFile('data/ideas.json', 'utf8', (err, symbols: any) => {
                                             if (err) {
-                                                console.log(err);
+                                                console.log('Databases Error ====>>', err);
                                             }
     
                                             symbols = JSON.parse(symbols);
@@ -78,8 +82,6 @@ export default class Databases {
                                                 console.log(`${symbol} ideas data has been updated (${t}s)`);
                                             })
                                         })
-                                    }).catch(err => {
-                                        console.log(err);
                                     })
                                 })
                             } else {
@@ -99,13 +101,11 @@ export default class Databases {
         let time: number = 0;
         let t: number = new Date().getTime();
 
-        console.log(`${symbol} ideas data is stored`);
+        console.log(`${symbol} ideas data is stored...`);
 
         await tradingview.getIdeas(symbol).then(data => {
             ideas = data;
             time = new Date().getTime();
-        }).catch(err => {
-            console.log(err);
         });
 
         if (ideas) {

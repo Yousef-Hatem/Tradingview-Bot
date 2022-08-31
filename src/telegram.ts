@@ -1,12 +1,12 @@
 import axios from "axios";
-
+import HandlingErrors from "./handling-errors";
 export default class Telegram {
     BotKey: string;
     constructor(BotKey: string) {
         this.BotKey = BotKey;
     }
-
-    async request(route: string, body: {} = {}) {        
+    
+    async request(route: string, body: {} = {}) {
         const response = await axios.post(`https://api.telegram.org/bot${this.BotKey}/${route}`, body);
         
         return response;
@@ -43,14 +43,14 @@ export default class Telegram {
    }
 
    webhook(url: string) {
+        const handlingErrors = new HandlingErrors();
+
         this.request(`getWebhookInfo`).then(async response => {
             if (response.data.result.url !== url) {            
                 const res = await this.request(`setWebhook?url=${url}`);
                 console.log(res.data);
             }
-        }).catch(err => {
-            console.log(err);
-        });
+        }).catch(handlingErrors.axios);
    }
 
    async editMessageMedia(chateId: number, messageId: number, media: {}, replyMarkup?: {}) {

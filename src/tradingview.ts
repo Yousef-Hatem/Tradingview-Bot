@@ -1,10 +1,11 @@
 import axios from "axios";
+import HandlingErrors from "./handling-errors";
 import { Idea } from './interfaces/Ideas';
 
 export default class Tradingview {
 
     async dataHandler(HTML: string): Promise<Idea[]> {
-        let ideas: any[] = [];
+        let ideas: Idea[] = [];
 
         let items: string[] = HTML.split('tv-feed__item tv-feed-layout__card-item');
 
@@ -19,34 +20,19 @@ export default class Tradingview {
                     badgeWrap: (item.split('<span class="content-s1XFg_zx">')[1] || '').split('</span>')[0],
                     img: item.split('type="image/webp"><img data-src="')[1].split('" src="')[0],
                     url: item.split(`publishedUrl&#34;:&#34;/chart/`)[1].split('/&#34;')[0],
-                    time: item.split(`publishedUrl&#34;:&#34;/chart/`)[1].split('/&#34;')[0]
+                    time: Number(item.split(`" data-timestamp="`)[1].split('.0"')[0]),
                 };
         
                 ideas.push(idea);
             }
-        });
-
-        for (let i = 0; i < ideas.length; i++) {
-            await this.dateHandler(ideas[i].time).then(date => {
-                ideas[i].time = date.getTime();
-            });
-        }        
+        });      
 
         return ideas;
     }
 
-    async dateHandler(route: string): Promise<Date> {
-        let url = 'https://www.tradingview.com/chart/' + route;
-        let date: Date;
-
-        return await axios.get(url).then((req) => {
-            date = new Date(req.data.split('"datePublished": "')[1].split('",')[0]);
-            date.setHours(date.getHours() + 7);            
-            return date;
-        });
-    }
-
     async getIdeas(symbol: string): Promise<Idea[] | null> {
+        const handlingErrors = new HandlingErrors();
+
         let url = 'https://www.tradingview.com/ideas/' + symbol;
 
         let ideas: Idea[] = [];
@@ -55,7 +41,7 @@ export default class Tradingview {
             await this.dataHandler(req.data).then(data => {
                 ideas = data;
             });
-        });
+        }).catch(handlingErrors.axios);
 
         if (!ideas.length) {
             return null;
@@ -67,7 +53,7 @@ export default class Tradingview {
             await this.dataHandler(req.data).then(data => {            
                 ideasRecent = data;
             });
-        });        
+        }).catch(handlingErrors.axios);
         
         return [...ideas, ...ideasRecent];
     }

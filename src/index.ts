@@ -3,9 +3,11 @@ import express from "express";
 import bodyParser from "body-parser";
 import TelegramAPI from "./telegram";
 import Databases from "./databases";
+import HandlingErrors from "./handling-errors";
 
 config();
 
+const handlingErrors = new HandlingErrors();
 const db = new Databases();
 const telegram = new TelegramAPI(<string> process.env.BOTKEY);
 const app = express();
@@ -53,7 +55,7 @@ app.post(webhookRoute, async (req, res) => {
                 t = (new Date().getTime() - t)/1000;
 
                 console.log(`${from} has started using the bot (${t}s)`);
-            });
+            }).catch(handlingErrors.axios);
         } else {
             let symbol: string = message;
             let index: number = 0;
@@ -72,9 +74,14 @@ app.post(webhookRoute, async (req, res) => {
                     let replyMarkup: {};
                     let idea = data.ideas[index];
 
+                    idea.time = Number(idea.time+'000');
                     let date = new Date(idea.time).toISOString().split('.')[0].split('T');
 
-                    let caption = `<a href="https://www.tradingview.com/chart/${idea.url}">${idea.title}</a>\n  |   ╰${idea.symbol} \n<b>👤 Analyst: ${idea.username}</b>\n  |   ╰${idea.badgeWrap}\n<i>📅 ${date[0]} ${date[1]}</i>`;
+                    if (!idea.badgeWrap) {
+                        idea.badgeWrap = "Free";
+                    }
+
+                    let caption = `<a href="https://www.tradingview.com/chart/${idea.url}">${idea.title}</a>\n•°• ╰${idea.symbol} \n<b>👤 Analyst: ${idea.username}</b>\n•°• ╰${idea.badgeWrap}\n<i>📅 ${date[0]} ${date[1]}</i>`;
 
                     if (req.body.callback_query) {
                         let i1 = index - 1;
@@ -101,10 +108,8 @@ app.post(webhookRoute, async (req, res) => {
                         telegram.editMessageMedia(chateId, messageId, media, replyMarkup).then(() => {
                             t = (new Date().getTime() - t)/1000;
 
-                            console.log(`${idea.symbol} idea data updated to ${from} (${t}s)`);
-                        }).catch(err => {
-                            console.log(err);
-                        })
+                            console.log(`${symbol} idea data updated to ${from} (${t}s)`);
+                        }).catch(handlingErrors.axios)
                     } else {
                         replyMarkup = {
                             inline_keyboard: [[{text: "➡️", callback_data: `${symbol}#1`}]]
@@ -113,10 +118,8 @@ app.post(webhookRoute, async (req, res) => {
                         telegram.sendPhoto(chateId, idea.img, caption, parseMode, messageId, replyMarkup).then(() => {
                             t = (new Date().getTime() - t)/1000;
         
-                            console.log(`${idea.symbol} idea data sent to ${from} (${t}s)`);
-                        }).catch(err => {
-                            console.log(err);
-                        });
+                            console.log(`${symbol} idea data sent to ${from} (${t}s)`);
+                        }).catch(handlingErrors.axios);
                     }
 
                 } else {
