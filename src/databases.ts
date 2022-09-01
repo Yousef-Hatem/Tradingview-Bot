@@ -15,7 +15,14 @@ export default class Databases {
                         data = response
                     });
                 } else {
-                    data = JSON.parse(res);
+                    if (res) {
+                        data = JSON.parse(res);
+                    } else {
+                        console.log("Error getIdeas ------------>>>", res);
+                        this.getIdeas(symbol).then(d => {
+                            data = d;
+                        });
+                    }
                 }
 
                 resolve(data);
@@ -34,7 +41,11 @@ export default class Databases {
                         if (err) {
                             data = {time: 0};
                         } else {
-                            data = JSON.parse(data);
+                            if (data) {
+                                data = JSON.parse(data);
+                            } else {
+                                return;
+                            }
                         }
 
                         const time: number = data.time;                        

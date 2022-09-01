@@ -20,6 +20,7 @@ app.post(webhookRoute, async (req, res) => {
     let message: string;
     let messageId: number;
     let from: string;
+    let type: string = '';
 
     if (req.body.chat_join_request) {
         console.log(`Request to join the ${req.body.chat_join_request.chat.title} group from ${req.body.chat_join_request.from.username}`);
@@ -34,9 +35,10 @@ app.post(webhookRoute, async (req, res) => {
     } else {
         if (req.body.message) {
             chateId = req.body.message.chat.id;
+            type = req.body.message.chat.type;
         } else {
+            console.log("Telegram -------------------------------------");
             console.log(req.body);
-            chateId = req.body.my_chat_member.chat.id;
             return res.send();
         }
         message = req.body.message.text;
@@ -74,6 +76,8 @@ app.post(webhookRoute, async (req, res) => {
 
             if (message[0] === '/') {
                 symbol = message.split('/')[1];
+            } else if (type !== "private" && !req.body.callback_query) {
+                return res.send();
             }
 
             if (req.body.callback_query) {

@@ -16,7 +16,7 @@ export default class Tradingview {
                 let idea: Idea = {
                     title: item.split('tv-widget-idea__title apply-overflow-tooltip js-widget-idea__popup" data-href="')[1].split("</a>")[0].split('">')[1],
                     description: item.split('tv-widget-idea__description-row tv-widget-idea__description-row--clamped js-widget-idea__popup"')[1].split('/">')[1].split('</p>')[0].replace(/\s+/g, ' ').trim(),
-                    symbol: item.split('class="tv-widget-idea__symbol apply-overflow-tooltip">')[1].split('</a></div>')[0],
+                    symbol: item.split('class="tv-widget-idea__symbol')[1].split('">')[1].split('</a></div>')[0],
                     username: item.split('<span class="tv-card-user-info__name">')[1].split('</span>')[0],
                     badgeWrap: (item.split('<span class="content-s1XFg_zx">')[1] || '').split('</span>')[0],
                     img: item.split('type="image/webp"><img data-src="')[1].split('" src="')[0],
@@ -62,6 +62,6 @@ export default class Tradingview {
             });
         }).catch(handlingErrors.axios);
         
-        return [...ideas, ...ideasRecent];
+        return [...ideasRecent, ...ideas];
     }
 }
