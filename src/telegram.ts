@@ -55,6 +55,17 @@ export default class Telegram {
         }).catch(handlingErrors.axios);
    }
 
+   async editMessage(chateId: number, messageId: number, message: string, parseMode?: string,  replyMarkup?: {}) {
+        const body: any = {chat_id: chateId, message_id: messageId, text: message};
+
+        replyMarkup? body.reply_markup = replyMarkup : null;
+        parseMode? body.parse_mode = parseMode : null;
+
+        const response = await this.request("editMessageText", body);
+
+        return response;
+    }
+
    async editMessageMedia(chateId: number, messageId: number, media: {}, replyMarkup?: {}) {
         const body: any = {chat_id: chateId, message_id: messageId, media};
 

@@ -2,7 +2,6 @@ import TradingviewAPI from "./tradingview";
 import fs from 'fs';
 import { Idea } from "./interfaces/Idea";
 import { Event } from "./interfaces/event";
-import Tradingview from "./tradingview";
 import Coinmarketcal from "./coinmarketcal";
 
 export default class Databases {
