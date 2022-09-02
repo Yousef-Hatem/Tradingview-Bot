@@ -42,44 +42,6 @@ export default class Databases {
         })
     }
 
-    updatingData() {
-        fs.readFile('data/symbols.json', 'utf8', (err, symbols: any) => {
-            if (!err) {
-                symbols = JSON.parse(symbols);
-                
-                symbols.forEach((symbol: string) => {
-                    let t: number = new Date().getTime();
-                    fs.readFile(`data/ideas/${symbol}.json`, 'utf8', (err, data: any) => {
-                        if (err) {
-                            data = {time: 0, ideas: []};
-                        } else {
-                            if (data) {
-                                data = JSON.parse(data);
-                            } else {
-                                return;
-                            }
-                        }
-
-                        const time: number = data.time;                        
-                        if ((new Date().getTime() - time) > Number(process.env.DATA_UPDATE_DELAY)*1000) {
-                            data.time = new Date().getTime() + 120000;
-                            fs.writeFile(`data/ideas/${symbol}.json`, JSON.stringify(data), () => {
-                                console.log(`${symbol} is updated...`);
-                                
-                                new Tradingview().getIdeas(symbol).then(ideas => {
-                                    fs.writeFile(`data/ideas/${symbol}.json`, JSON.stringify({time: new Date().getTime(), ideas}), () => {
-                                        t = (new Date().getTime() - t)/1000;
-                                        console.log(`${symbol} ideas data has been updated (${t}s)`);
-                                    })
-                                })
-                            })
-                        }
-                    })
-                })
-            }
-        })
-    }
-
     async addSymbol(symbol: string): Promise<{time: number, ideas: Idea[]} | null> {
         const tradingview = new TradingviewAPI();
         let ideas: Idea[] | null = null;
@@ -122,6 +84,46 @@ export default class Databases {
             
             return null;
         }
+    }
+
+    updatingIdeas() {
+        fs.readFile('data/symbols.json', 'utf8', (err, symbols: any) => {
+            if (!err && symbols) {
+                symbols = JSON.parse(symbols);
+                
+                symbols.forEach((symbol: string) => {
+                    let t: number = new Date().getTime();
+                    fs.readFile(`data/ideas/${symbol}.json`, 'utf8', (err, data: any) => {
+                        if (err) {
+                            data = {time: 0, ideas: []};
+                        } else {
+                            if (data) {
+                                data = JSON.parse(data);
+                            } else {
+                                console.log("-------------------------- Error Return updatingIdeas --------------------------");
+                                return;
+                            }
+                        }
+
+                        const time: number = data.time;                        
+                        if ((new Date().getTime() - time) > Number(process.env.DELAYED_UPDATING_OF_IDEAS_DATA)*1000) {
+                            data.time = new Date().getTime() + 180000;
+                            fs.writeFile(`data/ideas/${symbol}.json`, JSON.stringify(data), () => {
+                                console.log(`${symbol} is updated...`);
+                                const tradingview = new TradingviewAPI();
+                                
+                                tradingview.getIdeas(symbol).then(ideas => {
+                                    fs.writeFile(`data/ideas/${symbol}.json`, JSON.stringify({time: new Date().getTime(), ideas}), () => {
+                                        t = (new Date().getTime() - t)/1000;
+                                        console.log(`${symbol} ideas data has been updated (${t}s)`);
+                                    })
+                                })
+                            })
+                        }
+                    })
+                })
+            }
+        })
     }
 
     getEvents(coin: string): Promise<{time: number, events: Event[]} | null> {
@@ -193,5 +195,52 @@ export default class Databases {
             
             return null;
         }
+    }
+
+    updatingEvents() {
+        fs.readFile('data/coins.json', 'utf8', (err, coins: any) => {
+            if (!err && coins) {
+                coins = JSON.parse(coins);
+                
+                coins.forEach((coin: string) => {
+                    let t: number = new Date().getTime();
+                    fs.readFile(`data/events/${coin}.json`, 'utf8', (err, data: any) => {
+                        if (err) {
+                            data = {time: 0, events: []};
+                        } else {
+                            if (data) {
+                                data = JSON.parse(data);
+                            } else {
+                                console.log("-------------------------- Error Return updatingEvents --------------------------");
+                                return;
+                            }
+                        }
+
+                        const time: number = data.time;
+                        if ((new Date().getTime() - time) > Number(process.env.DELAYED_UPDATING_OF_EVENTS_DATA)*1000) {
+                            data.time = new Date().getTime() + 180000;
+                            fs.writeFile(`data/events/${coin}.json`, JSON.stringify(data), () => {
+                                console.log(`${coin} is updated...`);
+                                const coinmarketcal = new Coinmarketcal();
+
+                                coinmarketcal.getEvents(coin).then(events => {
+                                    fs.writeFile(`data/events/${coin}.json`, JSON.stringify({time: new Date().getTime(), events}), () => {
+                                        t = (new Date().getTime() - t)/1000;
+                                        console.log(`${coin} events data has been updated (${t}s)`);
+                                    })
+                                })
+                            })
+                        }
+                    })
+                })
+            }
+        })
+    }
+
+    updatingData() {
+        setInterval(() => {
+            this.updatingIdeas();
+            this.updatingEvents();
+        }, 1000);
     }
 }

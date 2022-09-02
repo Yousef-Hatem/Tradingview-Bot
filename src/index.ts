@@ -174,5 +174,5 @@ app.post(webhookRoute, async (req, res) => {
 app.listen(process.env.PORT || 5000, async () => {
     console.log(`Bot running on port`, process.env.PORT || 5000);
     telegram.webhook(process.env.SERVER_URL+webhookRoute);
-    setInterval(db.updatingData, 1000);
+    db.updatingData();
 });
