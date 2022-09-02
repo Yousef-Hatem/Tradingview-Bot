@@ -1,7 +1,9 @@
 import TradingviewAPI from "./tradingview";
 import fs from 'fs';
 import { Idea } from "./interfaces/Idea";
+import { Event } from "./interfaces/event";
 import Tradingview from "./tradingview";
+import Coinmarketcal from "./coinmarketcal";
 
 export default class Databases {
 
@@ -95,7 +97,7 @@ export default class Databases {
             fs.readFile('data/symbols.json', 'utf8', (err, data) => {
                 let symbols: string[] = [symbol];
     
-                if (!err) {
+                if (!err && data) {
                     if (JSON.parse(data).indexOf(symbol) === -1) {
                         symbols.push(...JSON.parse(data));
                     } else {
@@ -117,6 +119,77 @@ export default class Databases {
             t = (new Date().getTime() - t)/1000;
 
             console.log(`No data was found for ideas for ${symbol} (${t}s)`);
+            
+            return null;
+        }
+    }
+
+    getEvents(coin: string): Promise<{time: number, events: Event[]} | null> {
+        return new Promise((resolve) => {
+            fs.readFile(`data/events/${coin}.json`, 'utf8', async (err, res) => {
+                let data: {time: number, events: Event[]} | null = null;
+                
+                if (err) {
+                    await this.addCoin(coin).then(response => {
+                        data = response
+                    });
+                } else {
+                    if (res) {
+                        data = JSON.parse(res);
+                        if (!data?.events.length) {
+                            await this.addCoin(coin).then(response => {
+                                data = response
+                            });
+                        }
+                    } else {
+                        console.log("Error getEvents ------------>>>", res);
+                    }
+                }
+
+                resolve(data);
+            })
+        })
+    }
+
+    async addCoin(coin: string): Promise<{time: number, events: Event[]} | null> {
+        const coinmarketcal = new Coinmarketcal();
+        let events: Event[] = [];
+        let time: number = 0;
+        let t: number = new Date().getTime();
+
+        console.log(`${coin} events data is stored...`);
+
+        await coinmarketcal.getEvents(coin).then(data => {
+            events = data;
+            time = new Date().getTime();
+        });
+
+        if (events.length) {
+            fs.readFile('data/coins.json', 'utf8', (err, data) => {
+                let coins: string[] = [coin];
+    
+                if (!err && data) {
+                    if (JSON.parse(data).indexOf(coin) === -1) {
+                        coins.push(...JSON.parse(data));
+                    } else {
+                        coins = JSON.parse(data);
+                    }
+                }
+    
+                fs.writeFile('data/coins.json', JSON.stringify(coins), () => {
+                    fs.writeFile(`data/events/${coin}.json`, JSON.stringify({time, events}), () => {
+                        t = (new Date().getTime() - t)/1000;
+
+                        console.log(`${coin} Events Data Stored (${t}s)`);
+                    })                        
+                })
+            })
+
+            return {time, events};
+        } else {
+            t = (new Date().getTime() - t)/1000;
+
+            console.log(`No data was found for events for ${coin} (${t}s)`);
             
             return null;
         }
