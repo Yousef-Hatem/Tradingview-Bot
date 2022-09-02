@@ -1,17 +1,29 @@
-import axios from "axios";
-import HandlingErrors from "./handling-errors";
+import axios, { AxiosResponse } from "axios";
 import { Idea } from './interfaces/Ideas';
 
 export default class Tradingview {
 
-    async dataHandler(HTML: string): Promise<Idea[]> {
+    async request(route: string): Promise<AxiosResponse<any, any>> {
+        let response: any = null;
+
+        await axios.get(`https://www.tradingview.com/ideas/${route}`).then(data => {
+            response = data;
+        }).catch(async err => {
+            if (err.message != "Request failed with status code 404") {
+                await this.sleep(3000);
+                response = await this.request(route);
+            } 
+        })
+
+        return response;
+    }
+
+    dataHandler(HTML: string): Idea[] {
         let ideas: Idea[] = [];
-
         let items: string[] = HTML.split('tv-feed__item tv-feed-layout__card-item');
-
         items.shift();
 
-        items.forEach(async item => {
+        items.forEach(item => {
             if (ideas.length < 5) {
                 let idea: Idea = {
                     title: item.split('tv-widget-idea__title apply-overflow-tooltip js-widget-idea__popup" data-href="')[1].split("</a>")[0].split('">')[1],
@@ -32,36 +44,49 @@ export default class Tradingview {
         
                 ideas.push(idea);
             }
-        });      
+        })
 
         return ideas;
     }
 
     async getIdeas(symbol: string): Promise<Idea[] | null> {
-        const handlingErrors = new HandlingErrors();
-
-        let url = 'https://www.tradingview.com/ideas/' + symbol;
-
+        let error = false;
+        let ideasRecent: Idea[] = [];
         let ideas: Idea[] = [];
 
-        await axios.get(url).then(async req => {
-            await this.dataHandler(req.data).then(data => {
-                ideas = data;
-            });
-        }).catch(handlingErrors.axios);
+        await this.request(symbol + "?sort=recent").then(async req => {
+            if (req) {
+                ideasRecent = this.dataHandler(req.data);
+            }
+        });
 
-        if (!ideas.length) {
+        if (!ideasRecent.length) {
             return null;
         }
-        
-        let ideasRecent: Idea[] = [];
 
-        await axios.get(url + "?sort=recent").then(async req => {
-            await this.dataHandler(req.data).then(data => {            
-                ideasRecent = data;
+        await this.request(symbol).then(async req => {
+            ideas = this.dataHandler(req.data);
+        });
+
+        if (error) {
+            console.log(`${symbol} update failed, I will try to update it again`);
+            await this.sleep(2000);
+            let data: any;
+            let time = new Date().getTime();
+            await this.getIdeas(symbol).then(req => {
+                time = (new Date().getTime() - time)/1000;
+                data = req;
             });
-        }).catch(handlingErrors.axios);
+            
+            return data;
+        }
         
         return [...ideasRecent, ...ideas];
+    }
+
+    sleep (ms: number) {
+        return new Promise((resolve) => {
+          setTimeout(resolve, ms);
+        });
     }
 }

@@ -17,6 +17,16 @@ export default class Databases {
                 } else {
                     if (res) {
                         data = JSON.parse(res);
+                        if (!data?.ideas) {
+                            await this.addSymbol(symbol).then(response => {
+                                data = response
+                            });
+                        }
+                        if (!data?.ideas.length) {
+                            await this.addSymbol(symbol).then(response => {
+                                data = response
+                            });
+                        }
                     } else {
                         console.log("Error getIdeas ------------>>>", res);
                         this.getIdeas(symbol).then(d => {
@@ -39,7 +49,7 @@ export default class Databases {
                     let t: number = new Date().getTime();
                     fs.readFile(`data/ideas/${symbol}.json`, 'utf8', (err, data: any) => {
                         if (err) {
-                            data = {time: 0};
+                            data = {time: 0, ideas: []};
                         } else {
                             if (data) {
                                 data = JSON.parse(data);

@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import TelegramAPI from "./telegram";
 import Databases from "./databases";
 import HandlingErrors from "./handling-errors";
+import Tradingview from "./tradingview";
 
 config();
 
@@ -32,6 +33,14 @@ app.post(webhookRoute, async (req, res) => {
         message = req.body.callback_query.data;
         messageId = req.body.callback_query.message.message_id;
         from = req.body.callback_query.from.username;
+        if (!from) {
+            try {
+                from = req.body.callback_query.from.first_name;
+                from += ' ' + req.body.callback_query.from.last_name;
+            } catch (error) {
+                console.log(error);
+            }
+        }
     } else {
         if (req.body.message) {
             chateId = req.body.message.chat.id;
@@ -44,6 +53,14 @@ app.post(webhookRoute, async (req, res) => {
         message = req.body.message.text;
         messageId = req.body.message.message_id;
         from = req.body.message.from.username;
+        if (!from) {
+            try {
+                from = req.body.message.from.first_name;
+                from += ' ' + req.body.message.from.last_name;
+            } catch (error) {
+                console.log(error);
+            }
+        }
         if (req.body.message.from.is_bot === true) {
             return res.send();
         }
@@ -90,7 +107,9 @@ app.post(webhookRoute, async (req, res) => {
                     let replyMarkup: {};
                     let idea = data.ideas[index];
 
-                    console.log();
+                    if (!idea) {
+                        console.log(data);
+                    }
                     
                     if (`${idea.time}`.length === 10) {
                         idea.time = Number(idea.time+'000');
@@ -153,8 +172,12 @@ app.post(webhookRoute, async (req, res) => {
     return res.send();
 });
 
-app.listen(process.env.PORT || 5000, async () => {
-    console.log(`🚀 Bot running on port`, process.env.PORT || 5000);
-    telegram.webhook(process.env.SERVER_URL+webhookRoute);
-    setInterval(db.updatingData, 1000);
+// app.listen(process.env.PORT || 5000, async () => {
+//     console.log(`Bot running on port`, process.env.PORT || 5000);
+//     telegram.webhook(process.env.SERVER_URL+webhookRoute);
+//     setInterval(db.updatingData, 1000);
+// });
+
+new Tradingview().getIdeas("----").then(data => {
+    console.log(data);
 });
