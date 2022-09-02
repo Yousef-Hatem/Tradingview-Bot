@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from "axios";
-import { Idea } from './interfaces/Ideas';
+import { Idea } from './interfaces/Idea';
 
 export default class Tradingview {
 
@@ -18,7 +18,7 @@ export default class Tradingview {
         return response;
     }
 
-    dataHandler(HTML: string): Idea[] {
+    dataHandling(HTML: string): Idea[] {
         let ideas: Idea[] = [];
         let items: string[] = HTML.split('tv-feed__item tv-feed-layout__card-item');
         items.shift();
@@ -56,7 +56,7 @@ export default class Tradingview {
 
         await this.request(symbol + "?sort=recent").then(async req => {
             if (req) {
-                ideasRecent = this.dataHandler(req.data);
+                ideasRecent = this.dataHandling(req.data);
             }
         });
 
@@ -65,7 +65,7 @@ export default class Tradingview {
         }
 
         await this.request(symbol).then(async req => {
-            ideas = this.dataHandler(req.data);
+            ideas = this.dataHandling(req.data);
         });
 
         if (error) {

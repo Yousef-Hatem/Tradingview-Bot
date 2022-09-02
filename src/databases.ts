@@ -1,6 +1,6 @@
 import TradingviewAPI from "./tradingview";
 import fs from 'fs';
-import { Idea } from "./interfaces/Ideas";
+import { Idea } from "./interfaces/Idea";
 import Tradingview from "./tradingview";
 
 export default class Databases {

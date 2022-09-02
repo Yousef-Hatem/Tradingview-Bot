@@ -4,7 +4,6 @@ import bodyParser from "body-parser";
 import TelegramAPI from "./telegram";
 import Databases from "./databases";
 import HandlingErrors from "./handling-errors";
-import Tradingview from "./tradingview";
 
 config();
 
@@ -172,12 +171,8 @@ app.post(webhookRoute, async (req, res) => {
     return res.send();
 });
 
-// app.listen(process.env.PORT || 5000, async () => {
-//     console.log(`Bot running on port`, process.env.PORT || 5000);
-//     telegram.webhook(process.env.SERVER_URL+webhookRoute);
-//     setInterval(db.updatingData, 1000);
-// });
-
-new Tradingview().getIdeas("----").then(data => {
-    console.log(data);
+app.listen(process.env.PORT || 5000, async () => {
+    console.log(`Bot running on port`, process.env.PORT || 5000);
+    telegram.webhook(process.env.SERVER_URL+webhookRoute);
+    setInterval(db.updatingData, 1000);
 });
