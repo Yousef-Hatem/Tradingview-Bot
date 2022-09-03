@@ -54,10 +54,10 @@ app.post(webhookRoute, async (req, res) => {
                 }
                 if (req.body.my_chat_member.chat.type === 'group' || req.body.my_chat_member.chat.type === 'supergroup') {
                     telegram.getChatMembersCount(req.body.my_chat_member.chat.id).then(request => {
-                        console.log(`I joined the ${req.body.my_chat_member.chat.title} group and it has ${request.data.result} members`);
+                        console.log(`I joined the ${req.body.my_chat_member.chat.title} group and it has ${request.data.result} members :)`);
                         if (request.data.result >= 100) {
                             db.addUser(req.body.my_chat_member.from.id, username).then(() => {
-                                telegram.sendMessage(req.body.my_chat_member.from.id, `<b>Hi ${req.body.my_chat_member.from.first_name} ${req.body.my_chat_member.from.last_name}, you have added me to the <a href='https://web.telegram.org/k/#${req.body.my_chat_member.chat.id}'>${req.body.my_chat_member.chat.title}</a> group and you have obtained permission to use me privately for free \n\nCongratulations 🎉🎊</b>`, parseMode);
+                                telegram.sendMessage(req.body.my_chat_member.from.id, `<b>Congratulations 🎉🎊 \nYou have added the bot to the ${req.body.my_chat_member.chat.title}, you can now use the bot in private</b>`, parseMode);
                             });
                         }
                     }).catch(error => {
@@ -87,23 +87,6 @@ app.post(webhookRoute, async (req, res) => {
         if (req.body.message.from.is_bot === true) {
             return res.send();
         }
-
-        if (type == "private") {
-            let status: any;
-            await db.verifyUser(chateId).then(st => {
-                status = st;
-            }).catch(st => {
-                status = st;
-            });
-            if (!status) {
-                telegram.sendMessage(chateId, '<b>You do not have access to use In order to obtain the permission, you must add me to a group whose number of members is not less than 100</b>', parseMode, messageId)
-                .catch(error => {
-                    console.log("Error ---------------------Verify User-----------------------");
-                    console.log(error);
-                });
-                return res.send();
-            }
-        }
     }
 
     if (process.env.maintenance === "OK") {
@@ -120,12 +103,36 @@ app.post(webhookRoute, async (req, res) => {
             const fullName: string = req.body.message.from.first_name + ' ' + req.body.message.from.last_name;
             const msg = `Hi <b>${fullName}</b>, I am a Comutrade. Let's try typing the name of a symbol and see the ideas of this symbol For example try typing /BTCUSDT or /ETHUSDT or any symbol you want to know ideas`;
 
-            telegram.sendMessage(chateId, msg, parseMode, undefined).then(() => {
+            await telegram.sendMessage(chateId, msg, parseMode, undefined).then(() => {
                 t = (new Date().getTime() - t)/1000;
 
                 console.log(`<=${from}=> has started using the bot (${t}s)`);
             }).catch(handlingErrors.axios);
-        } else if (!message.split('/EVENT')[0] || req.body.callback_query && message.split("#")[2] === "EVENT") {            
+        }
+
+        if (type == "private") {
+            let status: any;
+            await db.verifyUser(chateId).then(st => {
+                status = st;
+            }).catch(st => {
+                status = st;
+            });
+            if (!status) {
+                telegram.sendMessage(chateId, '<b>To be able to use the bot privately, you must add the bot in a group with at least 100 members</b>', parseMode, messageId)
+                .then(() => {
+                    console.log(`The user <=${from}=> was told that he needs to add me to a group in order to use my services (${t}s)`);
+                })
+                .catch(error => {
+                    console.log("Error ---------------------Verify User-----------------------");
+                    console.log(error);
+                });
+                return res.send();
+            }
+        }
+
+        if (message === "/START") {
+            return res.send();
+        } else if (!message.split('/EVENT')[0] || req.body.callback_query && message.split("#")[2] === "EVENT") {
             
             let coin: string = '';
             
@@ -184,6 +191,20 @@ app.post(webhookRoute, async (req, res) => {
                 symbol = message.split('/')[1];
             } else if (type !== "private" && !req.body.callback_query) {
                 return res.send();
+            }
+
+            if (type === 'group' || type === 'supergroup') {
+                let result: number = 0;
+                await telegram.getChatMembersCount(chateId).then(request => {
+                    result = request.data.result;
+                    if (result < 100) {
+                        telegram.sendMessage(chateId, "In order to activate the bot in the group, the number of members in the group must not be less than 100", "HTML", messageId);
+                    }
+                });
+                
+                if (result < 100) {
+                    return res.send();
+                }
             }
 
             if (req.body.callback_query) {
