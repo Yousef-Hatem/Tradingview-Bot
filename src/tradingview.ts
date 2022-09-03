@@ -1,6 +1,5 @@
 import axios, { AxiosResponse } from "axios";
 import { Idea } from './interfaces/Idea';
-
 export default class Tradingview {
 
     async request(route: string): Promise<AxiosResponse<any, any>> {
@@ -31,7 +30,7 @@ export default class Tradingview {
                     symbol: item.split('class="tv-widget-idea__symbol')[1].split('">')[1].split('</a></div>')[0],
                     username: item.split('<span class="tv-card-user-info__name">')[1].split('</span>')[0],
                     badgeWrap: (item.split('<span class="content-s1XFg_zx">')[1] || '').split('</span>')[0],
-                    img: item.split('type="image/webp"><img data-src="')[1].split('" src="')[0],
+                    img: item.split('<img data-src="')[1].split('"')[0],
                     url: item.split(`publishedUrl&#34;:&#34;/chart/`)[1].split('/&#34;')[0],
                     time: Number(item.split(`" data-timestamp="`)[1].split('.0"')[0]),
                 };
