@@ -242,4 +242,69 @@ export default class Databases {
             this.updatingEvents();
         }, 1000);
     }
+
+    verifyUser(userId: number): Promise<boolean> {
+        return new Promise((resolve, reject) => {            
+            fs.readFile(`data/users.json`, 'utf8', (err, data: string) => {
+                if (!err) {
+                    if (JSON.parse(data).indexOf(userId) !== -1) {
+                        resolve(true);
+                    } else {
+                        reject(false);
+                    }
+                } else {
+                    reject(false)
+                }
+            })
+        })
+    }
+
+    addUser(userId: number, username: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            fs.readFile(`data/users.json`, 'utf8', async (err, data: string) => {
+                let users: number[] = [userId];
+    
+                if (!err) {
+                    if (data) {
+                        if (JSON.parse(data).indexOf(userId) !== -1) {
+                            reject(false);
+                            return;                        
+                        } else {
+                            users.push(...JSON.parse(data));
+                        }
+                    } else {
+                        await this.sleep(1000);
+                        await this.addUser(userId, username).then(() => resolve(true)).catch(() => reject(false));
+                    }
+                }
+
+                fs.writeFile(`data/users.json`, JSON.stringify(users), () => {
+                    fs.readFile(`data/users.json`, 'utf8', async (err, data: string) => {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            if (data) {
+                                if (JSON.parse(data).indexOf(userId) !== -1) {
+                                    console.log(`A new user has been added (${username}) and the number of users is currently ${users.length}`);
+                                    resolve(true);
+                                } else {
+                                    await this.sleep(1000);
+                                    await this.addUser(userId, username).then(() => resolve(true)).catch(() => reject(false));
+                                }
+                            } else {
+                                await this.sleep(1000);
+                                await this.addUser(userId, username).then(() => resolve(true)).catch(() => reject(false));
+                            }
+                        }
+                    })
+                })
+            })
+        })
+    }
+
+    sleep (ms: number) {
+        return new Promise((resolve) => {
+          setTimeout(resolve, ms);
+        });
+    }
 }

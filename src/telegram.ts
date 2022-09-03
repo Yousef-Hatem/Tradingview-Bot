@@ -66,13 +66,19 @@ export default class Telegram {
         return response;
     }
 
-   async editMessageMedia(chateId: number, messageId: number, media: {}, replyMarkup?: {}) {
-        const body: any = {chat_id: chateId, message_id: messageId, media};
+    async editMessageMedia(chateId: number, messageId: number, media: {}, replyMarkup?: {}) {
+            const body: any = {chat_id: chateId, message_id: messageId, media};
 
-        replyMarkup? body.reply_markup = replyMarkup : null;
-    
-        const response = await this.request("editMessageMedia", body);
+            replyMarkup? body.reply_markup = replyMarkup : null;
+        
+            const response = await this.request("editMessageMedia", body);
+
+            return response;
+    }
+
+    async getChatMembersCount(chateId: number) {
+        const response = await this.request("getChatMembersCount", {chat_id: chateId});
 
         return response;
-   }
+    }
 }

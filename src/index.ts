@@ -21,13 +21,15 @@ app.post(webhookRoute, async (req, res) => {
     let messageId: number;
     let from: string;
     let type: string = '';
+    const parseMode: string = "HTML";
+    let t = new Date().getTime();
 
     if (req.body.chat_join_request) {
         console.log(`Request to join the ${req.body.chat_join_request.chat.title} group from ${req.body.chat_join_request.from.username}`);
         return res.send();
     }
-
-    if (req.body.callback_query) {        
+    
+    if (req.body.callback_query) {
         chateId = req.body.callback_query.message.chat.id;
         message = req.body.callback_query.data;
         messageId = req.body.callback_query.message.message_id;
@@ -45,6 +47,28 @@ app.post(webhookRoute, async (req, res) => {
             chateId = req.body.message.chat.id;
             type = req.body.message.chat.type;
         } else {
+            if (req.body.my_chat_member) {
+                let username = req.body.my_chat_member.from.first_name + ' ' + req.body.my_chat_member.from.last_name;
+                if (req.body.my_chat_member.from.username) {
+                    username = req.body.my_chat_member.from.username;
+                }
+                if (req.body.my_chat_member.chat.type === 'group' || req.body.my_chat_member.chat.type === 'supergroup') {
+                    telegram.getChatMembersCount(req.body.my_chat_member.chat.id).then(request => {
+                        console.log(`I joined the ${req.body.my_chat_member.chat.title} group and it has ${request.data.result} members`);
+                        if (request.data.result >= 100) {
+                            db.addUser(req.body.my_chat_member.from.id, username).then(() => {
+                                telegram.sendMessage(req.body.my_chat_member.from.id, `<b>Hi ${req.body.my_chat_member.from.first_name} ${req.body.my_chat_member.from.last_name}, you have added me to the <a href='https://web.telegram.org/k/#${req.body.my_chat_member.chat.id}'>${req.body.my_chat_member.chat.title}</a> group and you have obtained permission to use me privately for free \n\nCongratulations 🎉🎊</b>`, parseMode);
+                            });
+                        }
+                    }).catch(error => {
+                        if (error.response.status == 403) {
+                            console.log(`${username} kicked me out of the ${req.body.my_chat_member.chat.title} group :(`);
+                        }
+                    })
+                    return res.send();
+                }
+            }
+
             console.log("Telegram -------------------------------------");
             console.log(req.body);
             return res.send();
@@ -63,9 +87,24 @@ app.post(webhookRoute, async (req, res) => {
         if (req.body.message.from.is_bot === true) {
             return res.send();
         }
-    }
 
-    let t = new Date().getTime();
+        if (type == "private") {
+            let status: any;
+            await db.verifyUser(chateId).then(st => {
+                status = st;
+            }).catch(st => {
+                status = st;
+            });
+            if (!status) {
+                telegram.sendMessage(chateId, '<b>You do not have access to use In order to obtain the permission, you must add me to a group whose number of members is not less than 100</b>', parseMode, messageId)
+                .catch(error => {
+                    console.log("Error ---------------------Verify User-----------------------");
+                    console.log(error);
+                });
+                return res.send();
+            }
+        }
+    }
 
     if (process.env.maintenance === "OK") {
         telegram.sendMessage(chateId, "I'm under maintenance now, try again later", '', messageId);
@@ -75,7 +114,6 @@ app.post(webhookRoute, async (req, res) => {
 
     if (message) {
         message = message.toUpperCase();
-        const parseMode: string = "HTML";
         let index: number = 0;
 
         if (message === "/START") {
