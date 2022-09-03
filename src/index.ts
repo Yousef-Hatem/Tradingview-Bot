@@ -48,25 +48,53 @@ app.post(webhookRoute, async (req, res) => {
             type = req.body.message.chat.type;
         } else {
             if (req.body.my_chat_member) {
+                const chateId = req.body.my_chat_member.chat.id;
+                const userId = req.body.my_chat_member.from.id;
+                const oldStatus = req.body.my_chat_member.old_chat_member.status;
+                const newStatus = req.body.my_chat_member.new_chat_member.status;
+                const title = req.body.my_chat_member.chat.title;
                 let username = req.body.my_chat_member.from.first_name + ' ' + req.body.my_chat_member.from.last_name;
                 if (req.body.my_chat_member.from.username) {
                     username = req.body.my_chat_member.from.username;
                 }
-                if (req.body.my_chat_member.chat.type === 'group' || req.body.my_chat_member.chat.type === 'supergroup') {
-                    telegram.getChatMembersCount(req.body.my_chat_member.chat.id).then(request => {
-                        console.log(`I joined the ${req.body.my_chat_member.chat.title} group and it has ${request.data.result} members :)`);
-                        if (request.data.result >= 100) {
-                            db.addUser(req.body.my_chat_member.from.id, username).then(() => {
-                                telegram.sendMessage(req.body.my_chat_member.from.id, `<b>Congratulations 🎉🎊 \nYou have added the bot to the ${req.body.my_chat_member.chat.title}, you can now use the bot in private</b>`, parseMode);
+
+                switch (newStatus) {
+                    case 'member':
+                        if (oldStatus === "left") {
+                            telegram.sendMessage(userId, `<b>You added me to the ${title} group, and in case I don't work in the group, all you have to do is make me administrator</b>`, parseMode);
+
+                            telegram.getChatMembersCount(chateId).then(request => {
+                                console.log(`I joined the ${title} group and it has ${request.data.result} members :)`);
+        
+                                if (request.data.result >= 100) {
+                                    db.addUser(userId, username).then(() => {
+                                        telegram.sendMessage(userId, `<b>Congratulations 🎉🎊 \nYou have added the bot to the ${title}, you can now use the bot in private</b>`, parseMode);
+                                    });
+                                }
+                            })
+                        } else if (oldStatus === "administrator") {
+                            const message = "<b>You removed me from administrators I may not be able to reply to messages so if I don't have permission to reply you can make me administrator to solve the problem</b>";
+                            
+                            telegram.sendMessage(chateId, message, parseMode).then(() => {
+                                console.log(`I have been removed from administrators by Aljadida ${title} group :(`);
                             });
                         }
-                    }).catch(error => {
-                        if (error.response.status == 403) {
-                            console.log(`${username} kicked me out of the ${req.body.my_chat_member.chat.title} group :(`);
+                        break;
+                    case 'administrator':
+                        if (oldStatus !== "administrator") {
+                            const message = "<b>I have been activated in the group. Congratulations! 🎉🎊</b>";
+                            
+                            telegram.sendMessage(chateId, message, parseMode).then(() => {
+                                console.log(`I became the administrator of the ${title} group :)`);
+                            });
                         }
-                    })
-                    return res.send();
+                        break;
+                    
+                    default:
+                        break;
                 }
+
+                return res.send();
             }
 
             console.log("Telegram -------------------------------------");
@@ -227,10 +255,6 @@ app.post(webhookRoute, async (req, res) => {
                     }
 
                     let date = new Date(idea.time).toISOString().split('.')[0].split('T');
-
-                    if (!idea.badgeWrap) {
-                        idea.badgeWrap = "Free";
-                    }
 
                     let caption = `<a href='https://www.tradingview.com/chart/${idea.url}'>${idea.title}</a> \n ${idea.description} \n\n📅 ${date[0]} ${date[1]}`;
 
