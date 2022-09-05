@@ -2,20 +2,18 @@ import { config } from "dotenv";
 import express from "express";
 import bodyParser from "body-parser";
 import TelegramAPI from "./telegram";
-import Databases from "./databases";
 import HandlingErrors from "./handling-errors";
+import Bot from "./bot";
 
 config();
 
 const handlingErrors = new HandlingErrors();
-const db = new Databases();
-const telegram = new TelegramAPI(<string> process.env.BOTKEY);
+const bot = new Bot();
+const telegram = new TelegramAPI();
 const app = express();
 app.use(bodyParser.json());
 
-const webhookRoute: string = `/webhook/${process.env.BOTKEY}`;
-
-app.post(webhookRoute, async (req, res) => {
+app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
     let chateId: number;
     let message: string;
     let messageId: number;
@@ -67,7 +65,7 @@ app.post(webhookRoute, async (req, res) => {
                                 console.log(`I joined the ${title} group and it has ${request.data.result} members :)`);
         
                                 if (request.data.result >= 100) {
-                                    db.addUser(userId, username).then(() => {
+                                    bot.addUser(userId, username).then(() => {
                                         telegram.sendMessage(userId, `<b>Congratulations 🎉🎊 \nYou have added the bot to the ${title}, you can now use the bot in private</b>`, parseMode);
                                     });
                                 }
@@ -140,7 +138,7 @@ app.post(webhookRoute, async (req, res) => {
 
         if (type == "private") {
             let status: any;
-            await db.verifyUser(chateId).then(st => {
+            await bot.verifyUser(chateId).then(st => {
                 status = st;
             }).catch(st => {
                 status = st;
@@ -148,6 +146,7 @@ app.post(webhookRoute, async (req, res) => {
             if (!status) {
                 telegram.sendMessage(chateId, '<b>To be able to use the bot privately, you must add the bot in a group with at least 100 members</b>', parseMode, messageId)
                 .then(() => {
+                    t = (new Date().getTime() - t)/1000;
                     console.log(`The user <=${from}=> was told that he needs to add me to a group in order to use my services (${t}s)`);
                 })
                 .catch(error => {
@@ -171,44 +170,48 @@ app.post(webhookRoute, async (req, res) => {
                 coin = message.split('/EVENT')[1].replace(/\s+/g, ' ').trim();
             }
 
-            db.getEvents(coin).then(data => {
-                if (data) {
-                    const event = data.events[index];
-                    let msg = `<b><a href='https://coinmarketcal.com/en/event/${event.url}'>${event.title}</a>\n📅 ${event.date} \n${event.description} \n<a href='${event.source}'>SOURCE</a></b>`;
-                    let replyMarkup: any;
+            bot.getEvents(coin)
+            .then(events => {
+                const event = events[index];
+                let msg = `<b><a href='https://coinmarketcal.com/en/event/${event.url}'>${event.title}</a>\n📅 ${event.date} \n${event.description} \n<a href='${event.source}'>SOURCE</a></b>`;
+                let replyMarkup: any;
 
-                    if (req.body.callback_query) {
-                        let i1 = index - 1;
-                        let i2 = index + 1;
-                        let InlineKeyboardButton: {}[] = [{text: "⬅️", callback_data: `${coin}#${i1}#EVENT`}, {text: "➡️", callback_data: `${coin}#${i2}#EVENT`}];
+                if (req.body.callback_query) {
+                    let i1 = index - 1;
+                    let i2 = index + 1;
+                    let InlineKeyboardButton: {}[] = [{text: "⬅️", callback_data: `${coin}#${i1}#EVENT`}, {text: "➡️", callback_data: `${coin}#${i2}#EVENT`}];
 
-                        if (index == 0) {
-                            InlineKeyboardButton = [{text: "➡️", callback_data: `${coin}#` + ++index + '#EVENT'}];
-                        } else if (index == data.events.length -1) {
-                            InlineKeyboardButton = [{text: "⬅️", callback_data: `${coin}#` + --index + '#EVENT'}];
-                        }
-
-                        replyMarkup = {inline_keyboard: [InlineKeyboardButton]}
-                        
-                        telegram.editMessage(chateId, messageId, msg, parseMode, replyMarkup).then(() => {
-                            t = (new Date().getTime() - t)/1000;
-
-                            console.log(`${coin} event data updated to <=${from}=> (${t}s)`);
-                        }).catch(handlingErrors.axios)
-                    } else {
-                        if (data.events.length > 1) {
-                            replyMarkup = {
-                                inline_keyboard: [[{text: "➡️", callback_data: `${coin}#1#EVENT`}]]
-                            }
-                        }
-                        telegram.sendMessage(chateId, msg, parseMode, messageId, replyMarkup).then(() => {
-                            t = (new Date().getTime() - t)/1000;
-
-                            console.log(`${coin} event data sent to <=${from}=> (${t}s)`);
-                        }).catch(handlingErrors.axios);
+                    if (index == 0) {
+                        InlineKeyboardButton = [{text: "➡️", callback_data: `${coin}#` + ++index + '#EVENT'}];
+                    } else if (index == events.length -1) {
+                        InlineKeyboardButton = [{text: "⬅️", callback_data: `${coin}#` + --index + '#EVENT'}];
                     }
+
+                    replyMarkup = {inline_keyboard: [InlineKeyboardButton]}
+                    
+                    telegram.editMessage(chateId, messageId, msg, parseMode, replyMarkup).then(() => {
+                        t = (new Date().getTime() - t)/1000;
+
+                        console.log(`${coin} event data updated to <=${from}=> (${t}s)`);
+                    }).catch(handlingErrors.axios)
                 } else {
+                    if (events.length > 1) {
+                        replyMarkup = {
+                            inline_keyboard: [[{text: "➡️", callback_data: `${coin}#1#EVENT`}]]
+                        }
+                    }
+                    telegram.sendMessage(chateId, msg, parseMode, messageId, replyMarkup).then(() => {
+                        t = (new Date().getTime() - t)/1000;
+
+                        console.log(`${coin} event data sent to <=${from}=> (${t}s)`);
+                    }).catch(handlingErrors.axios);
+                }
+            })
+            .catch(err => {
+                if (err.code === 404) {
                     telegram.sendMessage(chateId, "There is no upcoming events for this coin", '', messageId).catch(handlingErrors.axios);
+                } else {
+                    console.log(err);
                 }
             })
 
@@ -240,21 +243,18 @@ app.post(webhookRoute, async (req, res) => {
                 index = Number(message.split("#")[1]);
             }
 
-            db.getIdeas(symbol).then(data => {
-                if (data) {
+            bot.getIdeas(symbol)
+            .then(ideas => {
+                if (ideas) {
                     let replyMarkup: {};
-                    let idea = data.ideas[index];
+                    let idea = ideas[index];
 
                     if (!idea) {
                         console.log("Error -------------------index---------------------");
-                        console.log(data);
-                    }
-                    
-                    if (`${idea.time}`.length === 10) {
-                        idea.time = Number(idea.time+'000');
+                        console.log(ideas);
                     }
 
-                    let date = new Date(idea.time).toISOString().split('.')[0].split('T');
+                    let date = idea.date.toISOString().split('.')[0].split('T');
 
                     let caption = `<a href='https://www.tradingview.com/chart/${idea.url}'>${idea.title}</a> \n ${idea.description} \n\n📅 ${date[0]} ${date[1]}`;
 
@@ -265,7 +265,7 @@ app.post(webhookRoute, async (req, res) => {
 
                         if (index == 0) {
                             InlineKeyboardButton = [{text: "➡️", callback_data: `${symbol}#` + ++index + '#IDEA'}];
-                        } else if (index == data.ideas.length -1) {
+                        } else if (index == ideas.length -1) {
                             InlineKeyboardButton = [{text: "⬅️", callback_data: `${symbol}#` + --index + '#IDEA'}];
                         }
 
@@ -307,6 +307,5 @@ app.post(webhookRoute, async (req, res) => {
 
 app.listen(process.env.PORT || 5000, async () => {
     console.log(`Bot running on port`, process.env.PORT || 5000);
-    telegram.webhook(process.env.SERVER_URL+webhookRoute);
-    db.updatingData();
+    bot.start();
 });

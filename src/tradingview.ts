@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from "axios";
-import { Idea } from './interfaces/Idea';
+import { IIdea } from './interfaces/ideas';
 export default class Tradingview {
 
     async request(route: string): Promise<AxiosResponse<any, any>> {
@@ -17,22 +17,19 @@ export default class Tradingview {
         return response;
     }
 
-    dataHandling(HTML: string): Idea[] {
-        let ideas: Idea[] = [];
+    dataHandling(HTML: string): IIdea[] {
+        let ideas: IIdea[] = [];
         let items: string[] = HTML.split('tv-feed__item tv-feed-layout__card-item');
         items.shift();
 
         items.forEach(item => {
             if (ideas.length < 5) {
-                let idea: Idea = {
+                let idea: IIdea = {
                     title: item.split('tv-widget-idea__title apply-overflow-tooltip js-widget-idea__popup" data-href="')[1].split("</a>")[0].split('">')[1],
                     description: item.split('tv-widget-idea__description-row tv-widget-idea__description-row--clamped js-widget-idea__popup"')[1].split('/">')[1].split('</p>')[0].replace(/\s+/g, ' ').trim(),
-                    symbol: item.split('class="tv-widget-idea__symbol')[1].split('">')[1].split('</a></div>')[0],
-                    username: item.split('<span class="tv-card-user-info__name">')[1].split('</span>')[0],
-                    badgeWrap: (item.split('<span class="content-s1XFg_zx">')[1] || '').split('</span>')[0],
                     img: item.split('<img data-src="')[1].split('"')[0],
                     url: item.split(`publishedUrl&#34;:&#34;/chart/`)[1].split('/&#34;')[0],
-                    time: Number(item.split(`" data-timestamp="`)[1].split('.0"')[0]),
+                    date: new Date(Number(item.split(`" data-timestamp="`)[1].split('.0"')[0])),
                 };
 
                 let lengthDescription = 180;
@@ -48,10 +45,10 @@ export default class Tradingview {
         return ideas;
     }
 
-    async getIdeas(symbol: string): Promise<Idea[] | null> {
+    async getIdeas(symbol: string): Promise<IIdea[] | null> {
         let error = false;
-        let ideasRecent: Idea[] = [];
-        let ideas: Idea[] = [];
+        let ideasRecent: IIdea[] = [];
+        let ideas: IIdea[] = [];
 
         await this.request(symbol + "?sort=recent").then(async req => {
             if (req) {

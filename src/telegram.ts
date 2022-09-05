@@ -1,13 +1,9 @@
 import axios from "axios";
 import HandlingErrors from "./handling-errors";
 export default class Telegram {
-    BotKey: string;
-    constructor(BotKey: string) {
-        this.BotKey = BotKey;
-    }
     
     async request(route: string, body: {} = {}) {
-        const response = await axios.post(`https://api.telegram.org/bot${this.BotKey}/${route}`, body, {
+        const response = await axios.post(`https://api.telegram.org/bot${process.env.BOTKEY}/${route}`, body, {
             headers: {'Content-Type': 'application/json'}
         });
         
