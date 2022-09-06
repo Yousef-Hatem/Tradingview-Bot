@@ -24,14 +24,21 @@ export default class Tradingview {
 
         items.forEach(item => {
             if (ideas.length < 5) {
+                let time: any = item.split(`" data-timestamp="`)[1].split('.0"')[0];
+                if (time.length > 10) {
+                    time = Number(time);
+                } else {
+                    time = Number(time + "000");
+                }
+                
                 let idea: IIdea = {
                     title: item.split('tv-widget-idea__title apply-overflow-tooltip js-widget-idea__popup" data-href="')[1].split("</a>")[0].split('">')[1],
                     description: item.split('tv-widget-idea__description-row tv-widget-idea__description-row--clamped js-widget-idea__popup"')[1].split('/">')[1].split('</p>')[0].replace(/\s+/g, ' ').trim(),
                     img: item.split('<img data-src="')[1].split('"')[0],
                     url: item.split(`publishedUrl&#34;:&#34;/chart/`)[1].split('/&#34;')[0],
-                    date: new Date(Number(item.split(`" data-timestamp="`)[1].split('.0"')[0])),
+                    date: new Date(time),
                 };
-
+                
                 let lengthDescription = 180;
 
                 if (idea.description.length > lengthDescription) {
