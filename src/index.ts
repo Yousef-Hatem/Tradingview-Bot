@@ -160,7 +160,6 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
         if (message === "/START") {
             return res.send();
         } else if (!message.split('/EVENT')[0] || req.body.callback_query && message.split("#")[2] === "EVENT") {
-            
             let coin: string = '';
             
             if (req.body.callback_query) {
@@ -245,58 +244,60 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
 
             bot.getIdeas(symbol)
             .then(ideas => {
-                if (ideas) {
-                    let replyMarkup: {};
-                    let idea = ideas[index];
+                let replyMarkup: {};
+                let idea = ideas[index];
 
-                    if (!idea) {
-                        console.log("Error -------------------index---------------------");
-                        console.log(ideas);
+                if (!idea) {
+                    console.log("Error -------------------index---------------------");
+                    console.log(ideas);
+                }
+
+                let date = idea.date.toISOString().split('.')[0].split('T');
+
+                let caption = `<a href='https://www.tradingview.com/chart/${idea.url}'>${idea.title}</a> \n ${idea.description} \n\n📅 ${date[0]} ${date[1]}`;
+
+                if (req.body.callback_query) {
+                    let i1 = index - 1;
+                    let i2 = index + 1;
+                    let InlineKeyboardButton: {}[] = [{text: "⬅️", callback_data: `${symbol}#${i1}#IDEA`}, {text: "➡️", callback_data: `${symbol}#${i2}#IDEA`}];
+
+                    if (index == 0) {
+                        InlineKeyboardButton = [{text: "➡️", callback_data: `${symbol}#` + ++index + '#IDEA'}];
+                    } else if (index == ideas.length -1) {
+                        InlineKeyboardButton = [{text: "⬅️", callback_data: `${symbol}#` + --index + '#IDEA'}];
                     }
 
-                    let date = idea.date.toISOString().split('.')[0].split('T');
-
-                    let caption = `<a href='https://www.tradingview.com/chart/${idea.url}'>${idea.title}</a> \n ${idea.description} \n\n📅 ${date[0]} ${date[1]}`;
-
-                    if (req.body.callback_query) {
-                        let i1 = index - 1;
-                        let i2 = index + 1;
-                        let InlineKeyboardButton: {}[] = [{text: "⬅️", callback_data: `${symbol}#${i1}#IDEA`}, {text: "➡️", callback_data: `${symbol}#${i2}#IDEA`}];
-
-                        if (index == 0) {
-                            InlineKeyboardButton = [{text: "➡️", callback_data: `${symbol}#` + ++index + '#IDEA'}];
-                        } else if (index == ideas.length -1) {
-                            InlineKeyboardButton = [{text: "⬅️", callback_data: `${symbol}#` + --index + '#IDEA'}];
-                        }
-
-                        replyMarkup = {inline_keyboard: [InlineKeyboardButton]}
-                        
-                        const media = {
-                            type: 'photo',
-                            media: idea.img,
-                            caption: caption,
-                            parse_mode: parseMode
-                        }
-                        
-                        telegram.editMessageMedia(chateId, messageId, media, replyMarkup).then(() => {
-                            t = (new Date().getTime() - t)/1000;
-
-                            console.log(`${symbol} idea data updated to <=${from}=> (${t}s)`);
-                        }).catch(handlingErrors.axios)
-                    } else {
-                        replyMarkup = {
-                            inline_keyboard: [[{text: "➡️", callback_data: `${symbol}#1`}]]
-                        }
-
-                        telegram.sendPhoto(chateId, idea.img, caption, parseMode, messageId, replyMarkup).then(() => {
-                            t = (new Date().getTime() - t)/1000;
-        
-                            console.log(`${symbol} idea data sent to <=${from}=> (${t}s)`);
-                        }).catch(handlingErrors.axios);
+                    replyMarkup = {inline_keyboard: [InlineKeyboardButton]}
+                    
+                    const media = {
+                        type: 'photo',
+                        media: idea.img,
+                        caption: caption,
+                        parse_mode: parseMode
                     }
+                    
+                    telegram.editMessageMedia(chateId, messageId, media, replyMarkup).then(() => {
+                        t = (new Date().getTime() - t)/1000;
 
+                        console.log(`${symbol} idea data updated to <=${from}=> (${t}s)`);
+                    }).catch(handlingErrors.axios)
                 } else {
+                    replyMarkup = {
+                        inline_keyboard: [[{text: "➡️", callback_data: `${symbol}#1`}]]
+                    }
+
+                    telegram.sendPhoto(chateId, idea.img, caption, parseMode, messageId, replyMarkup).then(() => {
+                        t = (new Date().getTime() - t)/1000;
+    
+                        console.log(`${symbol} idea data sent to <=${from}=> (${t}s)`);
+                    }).catch(handlingErrors.axios);
+                }
+            })
+            .catch(err => {
+                if (err.code === 404) {
                     telegram.sendMessage(chateId, "No ideas for this currency", '', messageId);
+                } else {
+                    console.log(err);
                 }
             })
         }

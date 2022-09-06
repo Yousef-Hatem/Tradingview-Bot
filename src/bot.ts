@@ -202,12 +202,12 @@ export default class Bot {
 
         db.getAllEvents()
         .then(data => {
-            if (data) {                
+            if (data) {
                 data.forEach((events: IEvents) => {
                     let time: number = new Date().getTime();
                     const updatedAt = <number>events.updatedAt?.getTime();
 
-                    if ((new Date().getTime() - updatedAt) > Number(process.env.DELAYED_UPDATING_OF_EventS_DATA)*1000) {
+                    if ((new Date().getTime() - updatedAt) > Number(process.env.DELAYED_UPDATING_OF_EVENTS_DATA)*1000) {
                         db.updateEvents(events)
                         .then((data: IEvents) => {
                             console.log(`${data.coin} is updated...`);
@@ -243,7 +243,7 @@ export default class Bot {
     }
 
     verifyUser(telegramUserId: number): Promise<IUser> {
-        return new Promise((resolve, reject) => {         
+        return new Promise((resolve, reject) => {
             const db = new Databases();
 
             db.getUserByTelegramUserId(telegramUserId)
