@@ -25,7 +25,11 @@ export default class Telegram {
     }
 
    async sendPhoto(chatId: number, photoURL: string, caption?: string, parseMode?: string, replyToMessageId?: number, replyMarkup?: {}) {
-        const body: any = {chat_id: chatId, photo: photoURL, protect_contentL: process.env.PROTECTCONTENT};
+        const body: any = {chat_id: chatId, photo: photoURL};
+
+        if (process.env.PROTECTCONTENT === "Yes") {
+            body.protect_contentL = true;
+        }
 
         caption? body.caption = caption : null;
         
