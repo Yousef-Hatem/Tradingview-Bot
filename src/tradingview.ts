@@ -1,19 +1,37 @@
 import axios, { AxiosResponse } from "axios";
 import { IIdea } from './interfaces/ideas';
 export default class Tradingview {
+    
+    private bearing: number = 20;
+    private status: boolean = true;
 
     async request(route: string): Promise<AxiosResponse<any, any>> {
         let response: any = null;
 
-        await axios.get(`https://www.tradingview.com/ideas/${route}`).then(data => {
-            response = data;
-        }).catch(async err => {
-            if (err.message != "Request failed with status code 404") {
-                await this.sleep(3000);
-                response = await this.request(route);
-            } 
-        })
+        if (this.bearing === 0) {
+            this.status = false
+        } else if (this.bearing === 20) {
+            this.status = true
+        }
 
+        if (this.status) {
+            this.bearing--;
+            await axios.get(`https://www.tradingview.com/ideas/${route}`)
+            .then(data => {
+                response = data;
+            })
+            .catch(async err => {
+                if (err.message != "Request failed with status code 404") {
+                    await this.sleep(3000);
+                    response = await this.request(route);
+                } 
+            })
+            this.bearing++;
+        } else {
+            await this.sleep(1000);
+            response = await this.request(route);
+        }
+        
         return response;
     }
 

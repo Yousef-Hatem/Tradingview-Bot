@@ -88,10 +88,11 @@ export default class Bot {
 
     updateIdeas() {
         const db = new Databases();
+        const tradingview = new Tradingview();
 
         db.getAllIdeas()
         .then(data => {
-            if (data) {                
+            if (data) {
                 data.forEach((ideas: IIdeas) => {
                     let time: number = new Date().getTime();
                     const updatedAt = <number>ideas.updatedAt?.getTime();
@@ -100,7 +101,6 @@ export default class Bot {
                         db.updateIdeas(ideas)
                         .then((data: IIdeas) => {
                             console.log(`${data.symbol} is updated...`);
-                            const tradingview = new Tradingview();
                             
                             tradingview.getIdeas(data.symbol)
                             .then(ideas => {
