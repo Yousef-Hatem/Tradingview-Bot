@@ -1,3 +1,4 @@
+import { ITelegramGroup } from './interfaces/telegram-group';
 import Coinmarketcal from './coinmarketcal';
 import Databases from './databases';
 import { IEvent, IEvents } from './interfaces/events';
@@ -282,6 +283,69 @@ export default class Bot {
                     })
                 }
             })
+        })
+    }
+
+    groupVerification(id: number, title: string, username: string) {
+        const db = new Databases();
+        db.getTelegramGroupByTelegramId(id)
+        .then(telegramGroup => {
+            if (telegramGroup) {
+                telegramGroup.title = title;
+                telegramGroup.username = username;
+                telegramGroup.gotFired = false;
+                
+                db.updateTelegramGroup(telegramGroup)
+                .then(telegramGroup => {
+                    console.log(`${telegramGroup.title} group data has been updated`)
+                })
+                .catch(err => {
+                    console.log(err)
+                })
+            } else {
+                const telegramGroup: ITelegramGroup = {telegramId: id, title, username};
+
+                db.addTelegramGroup(telegramGroup)
+                .then(telegramGroup => {
+                    console.log(`${telegramGroup.title} group data has been recorded`)
+                })
+                .catch(err => {
+                    console.log(err)
+                })
+            }
+        })
+        .catch(err => {
+            console.log(err);
+        })
+    }
+
+    leftGroup(id: number, title: string, username: string) {
+        const db = new Databases();
+        db.getTelegramGroupByTelegramId(id)
+        .then(telegramGroup => {
+            if (telegramGroup) {
+                telegramGroup.gotFired = true;
+                db.updateTelegramGroup(telegramGroup)
+                .then(telegramGroup => {
+                    console.log(`I flew from ${telegramGroup.title} group :(`);
+                })
+                .catch(err => {
+                    console.log(err)
+                })
+            } else {
+                const telegramGroup: ITelegramGroup = {telegramId: id, title, username, gotFired: true};
+
+                db.addTelegramGroup(telegramGroup)
+                .then(telegramGroup => {
+                    console.log(`${telegramGroup.title} group data has been recorded`)
+                })
+                .catch(err => {
+                    console.log(err)
+                })
+            }
+        })
+        .catch(err => {
+            console.log(err)
         })
     }
 }

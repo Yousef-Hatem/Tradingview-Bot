@@ -1,3 +1,4 @@
+import { ITelegramGroup } from './interfaces/telegram-group';
 import mongoose from "mongoose"
 import { IUser } from './interfaces/user';
 import { IIdeas } from "./interfaces/ideas";
@@ -5,6 +6,7 @@ import { IEvents } from "./interfaces/events";
 import Ideas from "./schemas/ideas";
 import Events from "./schemas/events";
 import User from "./schemas/user";
+import TelegramGroup from './schemas/telegram-group';
 
 export default class Databases {
 
@@ -150,11 +152,67 @@ export default class Databases {
             const query = {telegramUserId};
             User.find(query)
             .then(doc => {
-                resolve(doc[0]);
+                resolve(doc[0])
+            })
+            .catch(err => {
+                reject(err)
+            });
+        });
+    }
+
+    addTelegramGroup(telegramGroups: ITelegramGroup): Promise<ITelegramGroup> {
+        return new Promise((resolve, reject) => {            
+            let newTelegramGroups = new TelegramGroup(telegramGroups);
+
+            newTelegramGroups.save()
+            .then(doc => {
+                resolve(doc)
             })
             .catch(err => {
                 reject(err);
-            });
+                console.log("Problem is saving to database", err)
+            }); 
         });
+    }
+
+    getTelegramGroups(): Promise<ITelegramGroup[]> {
+        return new Promise((resolve, reject) => {
+            TelegramGroup.find({})
+            .then(doc => {
+                resolve(doc)
+            })
+            .catch(err => {
+                reject(err)
+            })
+        })
+    }
+
+    getTelegramGroupByTelegramId(telegramId: number): Promise<ITelegramGroup> {
+        return new Promise((resolve, reject) => {
+            const query = {telegramId};
+            TelegramGroup.find(query)
+            .then(doc => {
+                resolve(doc[0])
+            })
+            .catch(err => {
+                reject(err)
+            })
+        })
+    }
+
+    updateTelegramGroup(telegramGroup: ITelegramGroup): Promise<ITelegramGroup> {
+        return new Promise((resolve, reject) => {
+            TelegramGroup.findByIdAndUpdate(telegramGroup["_id"], telegramGroup)
+            .then(doc => {
+                if (doc) {
+                    resolve(doc)
+                } else {
+                    reject()
+                }
+            })
+            .catch(err => {
+                reject(err);
+            })
+        })
     }
 }

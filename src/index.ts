@@ -24,6 +24,7 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
 
     if (req.body.chat_join_request) {
         console.log(`Request to join the ${req.body.chat_join_request.chat.title} group from ${req.body.chat_join_request.from.username}`);
+        bot.groupVerification(req.body.chat_join_request.chat.id, req.body.chat_join_request.chat.title, req.body.chat_join_request.chat.username);
         return res.send();
     }
     
@@ -44,6 +45,17 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
         if (req.body.message) {
             chateId = req.body.message.chat.id;
             type = req.body.message.chat.type;
+            if (type === 'group' || type === 'supergroup') {
+                if (req.body.message.left_chat_member) {
+                    let botId: number = Number(process.env.BOTKEY?.split(':')[0]);
+                    
+                    if (req.body.message.left_chat_member.id === botId) {
+                        return res.send();
+                    }
+                }
+
+                bot.groupVerification(chateId, req.body.message.chat.title, req.body.message.chat.username);
+            }
         } else {
             if (req.body.my_chat_member) {
                 const chateId = req.body.my_chat_member.chat.id;
@@ -57,7 +69,11 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                 }
 
                 switch (newStatus) {
+                    case 'left': 
+                        bot.leftGroup(chateId, title, req.body.my_chat_member.chat.username)
+                        break;
                     case 'member':
+                        bot.groupVerification(chateId, title, req.body.my_chat_member.chat.username);
                         if (oldStatus === "left") {
                             telegram.sendMessage(userId, `<b>You added me to the ${title} group, and in case I don't work in the group, all you have to do is make me administrator</b>`, parseMode);
 
@@ -79,6 +95,7 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                         }
                         break;
                     case 'administrator':
+                        bot.groupVerification(chateId, title, req.body.my_chat_member.chat.username);
                         if (oldStatus !== "administrator") {
                             const message = "<b>I have been activated in the group. Congratulations! 🎉🎊</b>";
                             
@@ -89,6 +106,7 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                         break;
                     
                     default:
+                        bot.groupVerification(chateId, title, req.body.my_chat_member.chat.username);
                         break;
                 }
 
@@ -214,7 +232,7 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                 }
             })
 
-        } else {            
+        } else {
             let symbol: string = message;
 
             if (message[0] === '/') {
@@ -254,7 +272,7 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
 
                 let date = idea.date.toISOString().split('.')[0].split('T');
 
-                let caption = `<a href='https://www.tradingview.com/chart/${idea.url}'>${idea.title}</a> \n ${idea.description} \n\n📅 ${date[0]} ${date[1]}`;
+                let caption = `${idea.title} \n ${idea.description} \n\n📅 ${date[0]} ${date[1]}`;
 
                 if (req.body.callback_query) {
                     let i1 = index - 1;

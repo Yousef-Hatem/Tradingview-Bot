@@ -5,7 +5,6 @@ export interface IIdea {
     title: string
     description: string
     img: string
-    url: string
     date: Date
 }
 
