@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from "axios";
 import { IIdea } from './interfaces/ideas';
 export default class Tradingview {
     
-    private bearing: number = 20;
+    private bearing: number = 10;
     private status: boolean = true;
 
     async request(route: string): Promise<AxiosResponse<any, any>> {
@@ -10,7 +10,7 @@ export default class Tradingview {
 
         if (this.bearing === 0) {
             this.status = false
-        } else if (this.bearing === 20) {
+        } else if (this.bearing === 10) {
             this.status = true
         }
 
@@ -18,10 +18,12 @@ export default class Tradingview {
             this.bearing--;
             await axios.get(`https://www.tradingview.com/ideas/${route}`)
             .then(data => {
-                response = data;
+                response = data
             })
             .catch(async err => {
                 if (err.message != "Request failed with status code 404") {
+                    console.log('Error Axios:', 'Route:', route);
+                    console.log(err);
                     await this.sleep(3000);
                     response = await this.request(route);
                 } 
@@ -53,7 +55,6 @@ export default class Tradingview {
                     title: item.split('tv-widget-idea__title apply-overflow-tooltip js-widget-idea__popup" data-href="')[1].split("</a>")[0].split('">')[1],
                     description: item.split('tv-widget-idea__description-row tv-widget-idea__description-row--clamped js-widget-idea__popup"')[1].split('/">')[1].split('</p>')[0].replace(/\s+/g, ' ').trim(),
                     img: item.split('<img data-src="')[1].split('"')[0],
-                    url: item.split(`publishedUrl&#34;:&#34;/chart/`)[1].split('/&#34;')[0],
                     date: new Date(time),
                 };
                 
