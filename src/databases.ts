@@ -147,6 +147,18 @@ export default class Databases {
         });
     }
 
+    getUsers(): Promise<IUser[]> {
+        return new Promise((resolve, reject) => {
+            User.find({})
+            .then(doc => {
+                resolve(doc);
+            })
+            .catch(err => {
+                reject(err);
+            })
+        })
+    }
+
     getUserByTelegramUserId(telegramUserId: number): Promise<IUser> {
         return new Promise((resolve, reject) => {
             const query = {telegramUserId};
@@ -161,7 +173,7 @@ export default class Databases {
     }
 
     addTelegramGroup(telegramGroups: ITelegramGroup): Promise<ITelegramGroup> {
-        return new Promise((resolve, reject) => {            
+        return new Promise((resolve, reject) => {      
             let newTelegramGroups = new TelegramGroup(telegramGroups);
 
             newTelegramGroups.save()

@@ -8,6 +8,8 @@ import Telegram from './telegram';
 import Tradingview from './tradingview';
 export default class Bot {
 
+    private reportSent: boolean = false;
+
     start() {
         const db = new Databases();
         const telegram = new Telegram();
@@ -18,6 +20,7 @@ export default class Bot {
         setInterval(() => {
             this.updateIdeas();
             this.updateEvents();
+            this.sendReport();
         }, 1000);
     }
     
@@ -286,7 +289,7 @@ export default class Bot {
         })
     }
 
-    groupVerification(id: number, title: string, username: string) {
+    groupVerification(id: number, title: string, username?: string) {
         const db = new Databases();
         db.getTelegramGroupByTelegramId(id)
         .then(telegramGroup => {
@@ -319,7 +322,7 @@ export default class Bot {
         })
     }
 
-    leftGroup(id: number, title: string, username: string) {
+    leftGroup(id: number, title: string, username?: string) {
         const db = new Databases();
         db.getTelegramGroupByTelegramId(id)
         .then(telegramGroup => {
@@ -333,7 +336,7 @@ export default class Bot {
                     console.log(err)
                 })
             } else {
-                const telegramGroup: ITelegramGroup = {telegramId: id, title, username, gotFired: true};
+                const telegramGroup: ITelegramGroup = {telegramId: id, title, gotFired: true, username};
 
                 db.addTelegramGroup(telegramGroup)
                 .then(telegramGroup => {
@@ -347,5 +350,84 @@ export default class Bot {
         .catch(err => {
             console.log(err)
         })
+    }
+
+    async sendReport() {
+        let UTCHours: number = new Date().getUTCHours();
+
+        if (UTCHours === 12 || UTCHours === 24) {
+            if (!this.reportSent) {
+                this.reportSent = true;
+                const telegram = new Telegram();
+                const db = new Databases();
+                let usersNumber: number = 0;
+                let groupsNumber: number = 0;
+                let numberUsersInGroups: number = 0;
+                let messageId: number = 0;
+    
+                await telegram.sendMessage(Number(process.env.ADMIN_GROUP), "The report is being processed....", 'HTML')
+                .then((req) => {
+                    messageId = req.data.result.message_id;
+                })
+                .catch(err => {
+                    console.log(err)
+                })
+                
+                await db.getUsers()
+                .then(users => usersNumber = users.length)
+                .catch(err => console.log(err))
+                
+                await db.getTelegramGroups()
+                .then(async groups => {
+                    async function getChatMembersCount(i = 0) {
+                        if (!groups[i].gotFired) {
+                            groupsNumber++;
+                            await telegram.getChatMembersCount(groups[i].telegramId)
+                            .then(async request => {
+                                numberUsersInGroups += request.data.result;
+                            })
+                            .catch(err => {
+                                if (err.response) {
+                                    if (err.response.data.description === "Forbidden: bot was kicked from the supergroup chat") {
+                                        const bot = new Bot();
+                                        bot.leftGroup(groups[i].telegramId, groups[i].title, groups[i].username);
+                                    }
+                                } else {
+                                    console.log(err)
+                                }
+                            })
+    
+                            if (i < groups.length - 1) {
+                                const bot = new Bot();
+                                bot.sleep(1000);
+                                await getChatMembersCount(++i)
+                            }
+                        } else if (i < groups.length - 1) {
+                            await getChatMembersCount(++i)
+                        }
+                    }
+                    await getChatMembersCount();
+                })
+                .catch(err => console.log(err))
+    
+                const message = `<b>Bot Users Data Report:\n- The number of private bot users: ${new Intl.NumberFormat().format(usersNumber)}\n- Number of groups: ${new Intl.NumberFormat().format(groupsNumber)}\n- Number of users in groups: ${new Intl.NumberFormat().format(numberUsersInGroups)}\n- Total number of users: ${new Intl.NumberFormat().format(usersNumber+numberUsersInGroups)}</b>`;
+    
+                telegram.editMessage(Number(process.env.ADMIN_GROUP), messageId, message, 'HTML')
+                .then(() => {
+                    console.log("A report has been sent to the number of users in the last 12 hours")
+                })
+                .catch(err => {
+                    console.log(err)
+                })
+            }
+        } else {
+            this.reportSent = false;
+        }
+    }
+
+    private sleep (ms: number) {
+        return new Promise((resolve) => {
+          setTimeout(resolve, ms);
+        });
     }
 }

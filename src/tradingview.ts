@@ -106,7 +106,7 @@ export default class Tradingview {
         return [...ideasRecent, ...ideas];
     }
 
-    sleep (ms: number) {
+    private sleep (ms: number) {
         return new Promise((resolve) => {
           setTimeout(resolve, ms);
         });
