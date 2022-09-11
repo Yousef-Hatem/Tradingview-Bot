@@ -4,7 +4,7 @@ import { Schema, model } from 'mongoose';
 const telegramGroupSchema = new Schema<ITelegramGroup>({
     telegramId: {type: Number, unique : true, required: true, dropDups: true},
     title: {type: String, required: true},
-    username: {type: String, unique : true, dropDups: true},
+    username: {type: String, default: null},
     gotFired: {type: Boolean, required: true, default: false}
 }, {timestamps: true});
 

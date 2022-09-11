@@ -46,10 +46,16 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
             chateId = req.body.message.chat.id;
             type = req.body.message.chat.type;
             if (type === 'group' || type === 'supergroup') {
-                if (req.body.message.left_chat_member) {
+                if (req.body.message.left_chat_member) {                    
                     let botId: number = Number(process.env.BOTKEY?.split(':')[0]);
                     
                     if (req.body.message.left_chat_member.id === botId) {
+                        return res.send();
+                    }
+                } else if (req.body.message.new_chat_member) {
+                    let botId: number = Number(process.env.BOTKEY?.split(':')[0]);
+                    
+                    if (req.body.message.new_chat_member.id === botId) {
                         return res.send();
                     }
                 }
@@ -69,7 +75,7 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                 }
 
                 switch (newStatus) {
-                    case 'left': 
+                    case 'left':                        
                         bot.leftGroup(chateId, title, req.body.my_chat_member.chat.username)
                         break;
                     case 'member':
@@ -83,9 +89,11 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                                 if (request.data.result >= 100) {
                                     bot.addUser(userId, username).then(() => {
                                         telegram.sendMessage(userId, `<b>Congratulations 🎉🎊 \nYou have added the bot to the ${title}, you can now use the bot in private</b>`, parseMode);
-                                    });
+                                    })
+                                    .catch(err => console.log(err))
                                 }
                             })
+                            .catch(err => console.log("Error get Chat Members Count", err))
                         } else if (oldStatus === "administrator") {
                             const message = "<b>You removed me from administrators I may not be able to reply to messages so if I don't have permission to reply you can make me administrator to solve the problem</b>";
                             
