@@ -150,7 +150,7 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
     }
 
     if (process.env.maintenance === "OK") {
-        telegram.sendMessage(chateId, "I'm under maintenance now, try again later", '', messageId)
+        telegram.sendMessage(chateId, "<b>I'm under maintenance now, try again later</b>", parseMode, messageId)
         .catch(handlingErrors.axios);
         console.log(`<=${from}=> tried to order during maintenance`);
         return res.send();
@@ -245,10 +245,10 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
             })
             .catch(err => {
                 if (err.code === 404) {
-                    telegram.sendMessage(chateId, "There is no upcoming events for this coin", '', messageId)
+                    telegram.sendMessage(chateId, "<b>There is no upcoming events for this coin</b>", parseMode, messageId)
                     .catch(handlingErrors.axios)
                 } else {
-                    console.log(err);
+                    console.log(err)
                 }
             })
 
@@ -257,6 +257,11 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
 
             if (message[0] === '/') {
                 symbol = message.split('/')[1];
+                if (!symbol.length) {
+                    telegram.sendMessage(chateId, '<b>Please specify the currency symbol after the “/” eg /BTCUSDT To display symbol ideas or specify "/event (coin)" eg /event BTC To display coin events</b>', parseMode, messageId)
+                    .catch(handlingErrors.axios);
+                    return res.send();
+                }
             } else if (type !== "private" && !req.body.callback_query) {
                 return res.send();
             }
@@ -266,7 +271,7 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                 await telegram.getChatMembersCount(chateId).then(request => result = request.data.result).catch(handlingErrors.axios)
                 
                 if (result < 100) {
-                    telegram.sendMessage(chateId, "In order to activate the bot in the group, the number of members in the group must not be less than 100", "HTML", messageId)
+                    telegram.sendMessage(chateId, "<b>In order to activate the bot in the group, the number of members in the group must not be less than 100</b>", parseMode, messageId)
                     .catch(handlingErrors.axios);
                     return res.send();
                 }
@@ -329,7 +334,7 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
             })
             .catch(err => {
                 if (err.code === 404) {
-                    telegram.sendMessage(chateId, "No ideas for this currency", '', messageId)
+                    telegram.sendMessage(chateId, "<b>No ideas for this currency</b>", parseMode, messageId)
                     .catch(handlingErrors.axios)
                 } else {
                     console.log(err)
