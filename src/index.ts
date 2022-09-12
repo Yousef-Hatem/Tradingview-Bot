@@ -188,6 +188,17 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                 });
                 return res.send();
             }
+        } else if (type === 'group' || type === 'supergroup') {
+            if (message[0] === '/') {
+                let result: number = 0;
+                await telegram.getChatMembersCount(chateId).then(request => result = request.data.result).catch(handlingErrors.axios)
+                
+                if (result < 100) {
+                    telegram.sendMessage(chateId, "<b>In order to activate the bot in the group, the number of members in the group must not be less than 100</b>", parseMode, messageId)
+                    .catch(handlingErrors.axios);
+                    return res.send();
+                }
+            }
         }
 
         if (message === "/START") {
@@ -267,17 +278,6 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                 }
             } else if (type !== "private" && !req.body.callback_query) {
                 return res.send();
-            }
-
-            if (type === 'group' || type === 'supergroup') {
-                let result: number = 0;
-                await telegram.getChatMembersCount(chateId).then(request => result = request.data.result).catch(handlingErrors.axios)
-                
-                if (result < 100) {
-                    telegram.sendMessage(chateId, "<b>In order to activate the bot in the group, the number of members in the group must not be less than 100</b>", parseMode, messageId)
-                    .catch(handlingErrors.axios);
-                    return res.send();
-                }
             }
 
             if (req.body.callback_query) {
