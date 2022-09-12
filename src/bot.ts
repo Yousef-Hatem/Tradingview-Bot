@@ -60,11 +60,7 @@ export default class Bot {
 
             console.log(`${symbol} ideas data is stored...`);
 
-            if (symbol === "ALLIDEAS") {
-                symbol = '';
-            }
-
-            tradingview.getIdeas(symbol)
+            tradingview.getIdeas(symbol === "ALLIDEAS" ? '' : symbol)
             .then(ideas => {
                 if (ideas) {
                     const db = new Databases();
@@ -175,11 +171,7 @@ export default class Bot {
 
             console.log(`${coin} events data is stored...`);
 
-            if (coin === "ALLEVENTS") {
-                coin = '';
-            }
-
-            coinmarketcal.getEvents(coin)
+            coinmarketcal.getEvents(coin === "ALLEVENTS" ? '' : coin)
             .then(events => {
                 if (events.length) {
                     const db = new Databases();
