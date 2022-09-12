@@ -81,14 +81,17 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                     case 'member':
                         bot.groupVerification(chateId, title, req.body.my_chat_member.chat.username);
                         if (oldStatus === "left") {
-                            telegram.sendMessage(userId, `<b>You added me to the ${title} group, and in case I don't work in the group, all you have to do is make me administrator</b>`, parseMode);
+                            telegram.sendMessage(userId, `<b>You added me to the ${title} group, and in case I don't work in the group, all you have to do is make me administrator</b>`, parseMode)
+                            .catch(handlingErrors.axios);
 
-                            telegram.getChatMembersCount(chateId).then(request => {
+                            telegram.getChatMembersCount(chateId)
+                            .then(request => {
                                 console.log(`I joined the ${title} group and it has ${request.data.result} members :)`);
         
                                 if (request.data.result >= 100) {
                                     bot.addUser(userId, username).then(() => {
-                                        telegram.sendMessage(userId, `<b>Congratulations 🎉🎊 \nYou have added the bot to the ${title}, you can now use the bot in private</b>`, parseMode);
+                                        telegram.sendMessage(userId, `<b>Congratulations 🎉🎊 \nYou have added the bot to the ${title}, you can now use the bot in private</b>`, parseMode)
+                                        .catch(handlingErrors.axios)
                                     })
                                     .catch(err => console.log(err))
                                 }
@@ -97,9 +100,11 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                         } else if (oldStatus === "administrator") {
                             const message = "<b>You removed me from administrators I may not be able to reply to messages so if I don't have permission to reply you can make me administrator to solve the problem</b>";
                             
-                            telegram.sendMessage(chateId, message, parseMode).then(() => {
+                            telegram.sendMessage(chateId, message, parseMode)
+                            .then(() => {
                                 console.log(`I have been removed from administrators by Aljadida ${title} group :(`);
-                            });
+                            })
+                            .catch(handlingErrors.axios)
                         }
                         break;
                     case 'administrator':
@@ -109,7 +114,8 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                             
                             telegram.sendMessage(chateId, message, parseMode).then(() => {
                                 console.log(`I became the administrator of the ${title} group :)`);
-                            });
+                            })
+                            .catch(handlingErrors.axios)
                         }
                         break;
                     
@@ -121,8 +127,10 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                 return res.send();
             }
 
-            console.log("Telegram -------------------------------------");
-            console.log(req.body);
+            if (!req.body.edited_message && !req.body.edited_channel_post && !req.body.channel_post) {
+                console.log("Telegram -------------------------------------");
+                console.log(req.body);
+            }
             return res.send();
         }
         message = req.body.message.text;
@@ -142,7 +150,8 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
     }
 
     if (process.env.maintenance === "OK") {
-        telegram.sendMessage(chateId, "I'm under maintenance now, try again later", '', messageId);
+        telegram.sendMessage(chateId, "I'm under maintenance now, try again later", '', messageId)
+        .catch(handlingErrors.axios);
         console.log(`<=${from}=> tried to order during maintenance`);
         return res.send();
     }
@@ -155,20 +164,18 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
             const fullName: string = req.body.message.from.first_name + ' ' + req.body.message.from.last_name;
             const msg = `Hi <b>${fullName}</b>, I am a Comutrade. Let's try typing the name of a symbol and see the ideas of this symbol For example try typing /BTCUSDT or /ETHUSDT or any symbol you want to know ideas`;
 
-            await telegram.sendMessage(chateId, msg, parseMode, undefined).then(() => {
+            await telegram.sendMessage(chateId, msg, parseMode)
+            .then(() => {
                 t = (new Date().getTime() - t)/1000;
 
                 console.log(`<=${from}=> has started using the bot (${t}s)`);
-            }).catch(handlingErrors.axios);
+            })
+            .catch(handlingErrors.axios);
         }
 
         if (type == "private") {
             let status: any;
-            await bot.verifyUser(chateId).then(st => {
-                status = st;
-            }).catch(st => {
-                status = st;
-            });
+            await bot.verifyUser(chateId).then(st => status = st).catch(st => status = st);
             if (!status) {
                 telegram.sendMessage(chateId, '<b>To be able to use the bot privately, you must add the bot in a group with at least 100 members</b>', parseMode, messageId)
                 .then(() => {
@@ -214,27 +221,32 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
 
                     replyMarkup = {inline_keyboard: [InlineKeyboardButton]}
                     
-                    telegram.editMessage(chateId, messageId, msg, parseMode, replyMarkup).then(() => {
+                    telegram.editMessage(chateId, messageId, msg, parseMode, replyMarkup)
+                    .then(() => {
                         t = (new Date().getTime() - t)/1000;
 
                         console.log(`${coin} event data updated to <=${from}=> (${t}s)`);
-                    }).catch(handlingErrors.axios)
+                    })
+                    .catch(handlingErrors.axios)
                 } else {
                     if (events.length > 1) {
                         replyMarkup = {
                             inline_keyboard: [[{text: "➡️", callback_data: `${coin}#1#EVENT`}]]
                         }
                     }
-                    telegram.sendMessage(chateId, msg, parseMode, messageId, replyMarkup).then(() => {
+                    telegram.sendMessage(chateId, msg, parseMode, messageId, replyMarkup)
+                    .then(() => {
                         t = (new Date().getTime() - t)/1000;
 
                         console.log(`${coin} event data sent to <=${from}=> (${t}s)`);
-                    }).catch(handlingErrors.axios);
+                    })
+                    .catch(handlingErrors.axios)
                 }
             })
             .catch(err => {
                 if (err.code === 404) {
-                    telegram.sendMessage(chateId, "There is no upcoming events for this coin", '', messageId).catch(handlingErrors.axios);
+                    telegram.sendMessage(chateId, "There is no upcoming events for this coin", '', messageId)
+                    .catch(handlingErrors.axios)
                 } else {
                     console.log(err);
                 }
@@ -251,14 +263,11 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
 
             if (type === 'group' || type === 'supergroup') {
                 let result: number = 0;
-                await telegram.getChatMembersCount(chateId).then(request => {
-                    result = request.data.result;
-                    if (result < 100) {
-                        telegram.sendMessage(chateId, "In order to activate the bot in the group, the number of members in the group must not be less than 100", "HTML", messageId);
-                    }
-                });
+                await telegram.getChatMembersCount(chateId).then(request => result = request.data.result).catch(handlingErrors.axios)
                 
                 if (result < 100) {
+                    telegram.sendMessage(chateId, "In order to activate the bot in the group, the number of members in the group must not be less than 100", "HTML", messageId)
+                    .catch(handlingErrors.axios);
                     return res.send();
                 }
             }
@@ -272,11 +281,6 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
             .then(ideas => {
                 let replyMarkup: {};
                 let idea = ideas[index];
-
-                if (!idea) {
-                    console.log("Error -------------------index---------------------");
-                    console.log(ideas);
-                }
 
                 let date = idea.date.toISOString().split('.')[0].split('T');
 
@@ -302,28 +306,33 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                         parse_mode: parseMode
                     }
                     
-                    telegram.editMessageMedia(chateId, messageId, media, replyMarkup).then(() => {
+                    telegram.editMessageMedia(chateId, messageId, media, replyMarkup)
+                    .then(() => {
                         t = (new Date().getTime() - t)/1000;
 
                         console.log(`${symbol} idea data updated to <=${from}=> (${t}s)`);
-                    }).catch(handlingErrors.axios)
+                    })
+                    .catch(handlingErrors.axios)
                 } else {
                     replyMarkup = {
                         inline_keyboard: [[{text: "➡️", callback_data: `${symbol}#1`}]]
                     }
 
-                    telegram.sendPhoto(chateId, idea.img, caption, parseMode, messageId, replyMarkup).then(() => {
+                    telegram.sendPhoto(chateId, idea.img, caption, parseMode, messageId, replyMarkup)
+                    .then(() => {
                         t = (new Date().getTime() - t)/1000;
     
                         console.log(`${symbol} idea data sent to <=${from}=> (${t}s)`);
-                    }).catch(handlingErrors.axios);
+                    })
+                    .catch(handlingErrors.axios)
                 }
             })
             .catch(err => {
                 if (err.code === 404) {
-                    telegram.sendMessage(chateId, "No ideas for this currency", '', messageId);
+                    telegram.sendMessage(chateId, "No ideas for this currency", '', messageId)
+                    .catch(handlingErrors.axios)
                 } else {
-                    console.log(err);
+                    console.log(err)
                 }
             })
         }
