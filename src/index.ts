@@ -144,9 +144,6 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                 console.log(error);
             }
         }
-        if (req.body.message.from.is_bot === true) {
-            return res.send();
-        }
     }
 
     if (process.env.maintenance === "OK") {
