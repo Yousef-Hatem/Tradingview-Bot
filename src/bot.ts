@@ -60,6 +60,10 @@ export default class Bot {
 
             console.log(`${symbol} ideas data is stored...`);
 
+            if (symbol === "ALLIDEAS") {
+                symbol = '';
+            }
+
             tradingview.getIdeas(symbol)
             .then(ideas => {
                 if (ideas) {
@@ -170,6 +174,10 @@ export default class Bot {
             let time: number = new Date().getTime();
 
             console.log(`${coin} events data is stored...`);
+
+            if (coin === "ALLEVENTS") {
+                coin = '';
+            }
 
             coinmarketcal.getEvents(coin)
             .then(events => {

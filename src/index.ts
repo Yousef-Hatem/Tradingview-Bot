@@ -200,6 +200,9 @@ app.post(`/webhook/${process.env.BOTKEY}`, async (req, res) => {
                 coin = message.split('#')[0];
             } else {
                 coin = message.split('/EVENT')[1].replace(/\s+/g, ' ').trim();
+                if (!coin.length) {
+                    coin = "ALLEVENTS"
+                }
             }
 
             bot.getEvents(coin)
