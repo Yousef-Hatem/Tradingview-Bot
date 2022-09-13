@@ -12,16 +12,30 @@ export default class Bot {
 
     start() {
         const db = new Databases();
-        const telegram = new Telegram();
+        
+        db.connect()
+        .then(() => {
+            const telegram = new Telegram();
 
-        db.connect();
-        telegram.webhook(`${process.env.SERVER_URL}/webhook/${process.env.BOTKEY}`);
+            console.log("Database connected successfully.");
 
-        setInterval(() => {
-            this.updateIdeas();
-            this.updateEvents();
-            this.sendReport();
-        }, 1000);
+            telegram.webhook()
+            .then((data) => {
+                if (data.result === true) {
+                    console.log(data.description)
+                } else {
+                    console.log("Webhook is already set.")
+                }
+
+                setInterval(() => {
+                    this.updateIdeas();
+                    this.updateEvents();
+                    this.sendReport();
+                }, 1000)
+            })
+            .catch(err => console.log(err))
+        })
+        .catch(err => console.log("Error in connecting to database", err))
     }
     
     getIdeas(symbol: string): Promise<IIdea[]> {

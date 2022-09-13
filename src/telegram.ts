@@ -1,5 +1,4 @@
 import axios from "axios";
-import HandlingErrors from "./handling-errors";
 export default class Telegram {
     
     async request(route: string, body: {} = {}) {
@@ -44,15 +43,20 @@ export default class Telegram {
         return response;
    }
 
-   webhook(url: string) {
-        const handlingErrors = new HandlingErrors();
-
-        this.request(`getWebhookInfo`).then(async response => {
-            if (response.data.result.url !== url) {            
-                const res = await this.request(`setWebhook?url=${url}`);
-                console.log(res.data);
-            }
-        }).catch(handlingErrors.axios);
+   webhook(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const url = `${process.env.SERVER_URL}/webhook/${process.env.BOTKEY}`;
+            this.request(`getWebhookInfo`).then(async response => {
+                if (response.data.result.url !== url) {
+                    this.request(`setWebhook?url=${url}`)
+                    .then(response => {
+                        resolve(response.data)
+                    }).catch(err => reject(err))
+                } else {
+                    resolve(response.data)
+                }
+            }).catch(err => reject(err))
+        })
    }
 
    async editMessage(chateId: number, messageId: number, message: string, parseMode?: string,  replyMarkup?: {}) {

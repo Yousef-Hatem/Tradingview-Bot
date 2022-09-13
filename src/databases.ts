@@ -10,13 +10,15 @@ import TelegramGroup from './schemas/telegram-group';
 
 export default class Databases {
 
-    connect() {
-        mongoose.connect(<string> process.env.MONGODB_URL)
-        .then(() => {
-            console.log("Database connected successfully.");
-        })
-        .catch((err) => {
-            console.log("Error in connecting to database", err);
+    connect(): Promise<typeof mongoose> {
+        return new Promise((resolve, reject) => {
+            mongoose.connect(<string> process.env.MONGODB_URL)
+            .then((value) => {
+                resolve(value)
+            })
+            .catch((err) => {
+                reject(err)
+            })
         })
     }
 
