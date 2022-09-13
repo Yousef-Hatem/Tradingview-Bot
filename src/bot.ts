@@ -355,7 +355,7 @@ export default class Bot {
     async sendReport() {
         let UTCHours: number = new Date().getUTCHours();
 
-        if (UTCHours === 0 || UTCHours === 24) {
+        if (UTCHours === 0 || UTCHours === 12) {
             if (!this.reportSent) {
                 this.reportSent = true;
                 const telegram = new Telegram();
