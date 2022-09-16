@@ -1,17 +1,15 @@
 import { Types } from 'mongoose';
+import { IDatabase } from './database';
 
 export interface IIdea {
-    _id?: Types.ObjectId
+    readonly _id?: Types.ObjectId
     title: string
     description: string
     img: string
     date: Date
 }
 
-export interface IIdeas {
-    _id?: Types.ObjectId
+export interface IIdeas extends IDatabase {
     symbol: string
     ideas: IIdea[]
-    createdAt?: Date
-    updatedAt?: Date
 }

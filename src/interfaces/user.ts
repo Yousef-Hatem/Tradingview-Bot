@@ -1,8 +1,4 @@
-import { Types } from 'mongoose';
-
-export interface IUser {
-    _id?: Types.ObjectId
+import { IDatabase } from './database';
+export interface IUser extends IDatabase {
     telegramUserId: number
-    createdAt?: Date
-    updatedAt?: Date
 }

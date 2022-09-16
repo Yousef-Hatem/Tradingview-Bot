@@ -1,7 +1,8 @@
+import { IDatabase } from './database';
 import { Types } from 'mongoose';
 
 export interface IEvent {
-    _id?: Types.ObjectId
+    readonly _id?: Types.ObjectId
     title: string;
     description: string;
     date: string;
@@ -9,10 +10,7 @@ export interface IEvent {
     url: string;
 }
 
-export interface IEvents {
-    _id?: Types.ObjectId
+export interface IEvents extends IDatabase {
     coin: string
     events: IEvent[]
-    createdAt?: Date
-    updatedAt?: Date
 }

@@ -1,11 +1,8 @@
-import { Types } from 'mongoose';
+import { IDatabase } from "./database"
 
-export interface ITelegramGroup {
-    _id?: Types.ObjectId
+export interface ITelegramGroup extends IDatabase {
     telegramId: number
     title: string
     gotFired?: boolean
     username?: string
-    createdAt?: Date
-    updatedAt?: Date
 }
